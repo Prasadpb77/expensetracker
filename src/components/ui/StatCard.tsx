@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn, formatCurrency } from '@/utils';
 

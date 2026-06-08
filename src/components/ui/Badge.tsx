@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { cn } from '@/utils';
 
 interface BadgeProps {
@@ -6,6 +7,7 @@ interface BadgeProps {
   variant?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'outline';
   size?: 'sm' | 'md';
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const variantClasses = {
@@ -27,9 +29,11 @@ export function Badge({
   variant = 'default',
   size = 'md',
   className,
+  style,
 }: BadgeProps) {
   return (
     <span
+      style={style}
       className={cn(
         'inline-flex items-center gap-1 rounded-md font-medium',
         variantClasses[variant],

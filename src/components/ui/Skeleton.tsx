@@ -1,8 +1,10 @@
 import React from 'react';
+
 import { cn } from '@/utils';
 
 interface SkeletonProps {
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export function Skeleton({ className }: SkeletonProps) {

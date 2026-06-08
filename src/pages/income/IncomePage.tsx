@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Plus, Search, Filter, Pencil, Trash2, TrendingUp } from 'lucide-react';
 import { useAppStore } from '@/contexts/store';
 import { useAuth } from '@/contexts/AuthContext';

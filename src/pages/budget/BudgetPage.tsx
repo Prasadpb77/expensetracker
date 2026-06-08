@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '@/contexts/store';
 import { useAuth } from '@/contexts/AuthContext';
 import { budgetService } from '@/services/budget.service';
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
