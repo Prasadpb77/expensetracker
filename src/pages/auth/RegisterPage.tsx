@@ -36,6 +36,7 @@ export function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    mode: 'onSubmit',
   });
 
   const onSubmit = async (data: RegisterForm) => {
@@ -45,7 +46,7 @@ export function RegisterPage() {
       addToast({
         type: 'success',
         title: 'Account created!',
-        message: 'Please check your email to verify your account.',
+        message: 'You can now log in.',
       });
       navigate('/dashboard');
     } catch (error) {
@@ -81,42 +82,39 @@ export function RegisterPage() {
             Create your account
           </h2>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
             <Input
-              label="Full name"
+              label="Full name *"
               type="text"
-              placeholder="Prasad Sharma"
+              placeholder="Prasad Bhavsar"
               leftIcon={<User className="h-4 w-4" />}
               error={errors.full_name?.message}
-              required
               {...register('full_name')}
             />
 
             <Input
-              label="Display name"
+              label="Display name *"
               type="text"
               placeholder="Prasad"
               leftIcon={<User className="h-4 w-4" />}
               hint="This is how you'll appear to family members"
               error={errors.display_name?.message}
-              required
               {...register('display_name')}
             />
 
             <Input
-              label="Email address"
+              label="Email address *"
               type="email"
               placeholder="prasad@example.com"
               leftIcon={<Mail className="h-4 w-4" />}
               error={errors.email?.message}
-              required
               {...register('email')}
             />
 
             <Input
-              label="Password"
+              label="Password *"
               type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
+              placeholder="Min. 8 characters"
               leftIcon={<Lock className="h-4 w-4" />}
               rightIcon={
                 <button
@@ -128,17 +126,15 @@ export function RegisterPage() {
                 </button>
               }
               error={errors.password?.message}
-              required
               {...register('password')}
             />
 
             <Input
-              label="Confirm password"
+              label="Confirm password *"
               type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
+              placeholder="Re-enter password"
               leftIcon={<Lock className="h-4 w-4" />}
               error={errors.confirmPassword?.message}
-              required
               {...register('confirmPassword')}
             />
 

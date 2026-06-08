@@ -55,7 +55,7 @@ export function IncomeForm({ defaultValues, onSubmit, onCancel, loading }: Incom
   const sourceOptions = INCOME_SOURCES.map(s => ({ value: s, label: s }));
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <Input
           label="Amount (₹)"
@@ -63,14 +63,12 @@ export function IncomeForm({ defaultValues, onSubmit, onCancel, loading }: Incom
           step="0.01"
           placeholder="50000"
           error={errors.amount?.message}
-          required
           {...register('amount')}
         />
         <Select
           label="Source"
           options={sourceOptions}
           error={errors.source?.message}
-          required
           {...register('source')}
         />
       </div>
@@ -87,7 +85,6 @@ export function IncomeForm({ defaultValues, onSubmit, onCancel, loading }: Incom
         label="Date"
         type="date"
         error={errors.date?.message}
-        required
         {...register('date')}
       />
 

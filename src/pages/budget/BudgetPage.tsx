@@ -58,7 +58,7 @@ function BudgetForm({
   const yearOptions = [2024, 2025, 2026, 2027].map(y => ({ value: String(y), label: String(y) }));
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
       <Select label="Category" options={categoryOptions} error={errors.category?.message} required {...register('category')} />
       <Input label="Monthly Limit (₹)" type="number" step="100" placeholder="10000" error={errors.monthly_limit?.message} required {...register('monthly_limit')} />
       <div className="grid grid-cols-2 gap-4">

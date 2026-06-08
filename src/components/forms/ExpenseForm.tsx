@@ -76,7 +76,7 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
   }));
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <Input
           label="Amount (₹)"
@@ -84,14 +84,12 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
           step="0.01"
           placeholder="500"
           error={errors.amount?.message}
-          required
           {...register('amount')}
         />
         <Select
           label="Category"
           options={categoryOptions}
           error={errors.category?.message}
-          required
           {...register('category')}
         />
       </div>
@@ -101,7 +99,6 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
         type="text"
         placeholder="e.g. Dinner at Taj"
         error={errors.description?.message}
-        required
         {...register('description')}
       />
 
@@ -110,14 +107,12 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
           label="Date"
           type="date"
           error={errors.date?.message}
-          required
           {...register('date')}
         />
         <Select
           label="Paid By"
           options={memberOptions.length > 0 ? memberOptions : [{ value: user?.id ?? '', label: 'You' }]}
           error={errors.paid_by?.message}
-          required
           {...register('paid_by')}
         />
       </div>

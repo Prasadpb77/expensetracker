@@ -28,6 +28,7 @@ export function LoginPage() {
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    mode: 'onSubmit',
   });
 
   const onSubmit = async (data: LoginForm) => {
@@ -39,7 +40,7 @@ export function LoginPage() {
       addToast({
         type: 'error',
         title: 'Login failed',
-        message: error instanceof Error ? error.message : 'Invalid credentials',
+        message: error instanceof Error ? error.message : 'Invalid email or password',
       });
     } finally {
       setLoading(false);
@@ -68,14 +69,13 @@ export function LoginPage() {
             Welcome back
           </h2>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
             <Input
               label="Email address"
               type="email"
               placeholder="prasad@example.com"
               leftIcon={<Mail className="h-4 w-4" />}
               error={errors.email?.message}
-              required
               {...register('email')}
             />
 
@@ -94,7 +94,6 @@ export function LoginPage() {
                 </button>
               }
               error={errors.password?.message}
-              required
               {...register('password')}
             />
 
@@ -107,12 +106,7 @@ export function LoginPage() {
               </Link>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              loading={loading}
-            >
+            <Button type="submit" className="w-full" size="lg" loading={loading}>
               Sign in
             </Button>
           </form>

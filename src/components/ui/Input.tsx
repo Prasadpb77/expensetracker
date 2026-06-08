@@ -18,6 +18,7 @@ export function Input({
   rightIcon,
   className,
   id,
+  required: _required,  // capture but don't pass to native input
   ...props
 }: InputProps) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
@@ -30,7 +31,6 @@ export function Input({
           className="block text-sm font-medium text-surface-700 dark:text-surface-300"
         >
           {label}
-          {props.required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <div className="relative">
@@ -86,6 +86,7 @@ export function Select({
   options,
   className,
   id,
+  required: _required,
   ...props
 }: SelectProps) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
@@ -98,7 +99,6 @@ export function Select({
           className="block text-sm font-medium text-surface-700 dark:text-surface-300"
         >
           {label}
-          {props.required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <select

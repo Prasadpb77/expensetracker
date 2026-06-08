@@ -22,6 +22,7 @@ export function ForgotPasswordPage() {
 
   const { register, handleSubmit, formState: { errors } } = useForm<ForgotForm>({
     resolver: zodResolver(schema),
+    mode: 'onSubmit',
   });
 
   const onSubmit = async (data: ForgotForm) => {
@@ -75,20 +76,18 @@ export function ForgotPasswordPage() {
                 Reset password
               </h2>
               <p className="text-sm text-surface-500 mb-6">
-                Enter your email and we'll send you a link to reset your password.
+                Enter your email and we'll send you a reset link.
               </p>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
                 <Input
                   label="Email address"
                   type="email"
                   placeholder="prasad@example.com"
                   leftIcon={<Mail className="h-4 w-4" />}
                   error={errors.email?.message}
-                  required
                   {...register('email')}
                 />
-
                 <Button type="submit" className="w-full" size="lg" loading={loading}>
                   Send reset link
                 </Button>
