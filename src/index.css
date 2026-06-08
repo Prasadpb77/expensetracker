@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-surface-200: #e2e8f0;
+    --color-surface-500: #64748b;
+  }
+
+  .dark {
+    --color-surface-200: #334155;
+    --color-surface-500: #94a3b8;
+  }
+
+  * {
+    @apply border-surface-200 dark:border-surface-700;
+  }
+
+  body {
+    @apply font-sans text-surface-900 dark:text-surface-100;
+    @apply bg-surface-50 dark:bg-surface-950;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-100 dark:bg-surface-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-300 dark:bg-surface-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-400 dark:bg-surface-500;
+  }
+
+  /* Focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
+  }
+
+  /* Surface hover for dark mode table rows */
+  .dark .hover\:bg-surface-750:hover {
+    background-color: rgb(30 41 59 / 0.8);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent;
+  }
+}
+
+/* Recharts dark mode overrides */
+.dark .recharts-text {
+  fill: #94a3b8;
+}
+
+.dark .recharts-cartesian-grid line {
+  stroke: #334155;
+}
+
+/* Input date picker fix */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Range input */
+input[type="range"] {
+  @apply h-2 rounded-full cursor-pointer appearance-none bg-surface-200 dark:bg-surface-700;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 rounded-full bg-brand-600 cursor-pointer shadow-sm;
+}
+
+/* Checkbox */
+input[type="checkbox"] {
+  @apply rounded border-surface-300 dark:border-surface-600 text-brand-600;
+}
