@@ -3,11 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Wallet, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Wallet, Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { useAppStore } from '@/contexts/store';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 
 const registerSchema = z
   .object({
@@ -24,6 +22,11 @@ const registerSchema = z
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
+const fieldClass = 'w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+const errorFieldClass = 'w-full rounded-lg border border-red-400 bg-white text-gray-900 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent';
+const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+const errorClass = 'text-xs text-red-600 mt-1';
+
 export function RegisterPage() {
   const navigate = useNavigate();
   const { addToast } = useAppStore();
@@ -36,18 +39,13 @@ export function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    mode: 'onSubmit',
   });
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
     try {
       await authService.signUp(data);
-      addToast({
-        type: 'success',
-        title: 'Account created!',
-        message: 'You can now log in.',
-      });
+      addToast({ type: 'success', title: 'Account created! You can now sign in.' });
       navigate('/dashboard');
     } catch (error) {
       addToast({
@@ -61,99 +59,120 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-blue-50/30 to-brand-50/50 dark:from-surface-950 dark:via-surface-900 dark:to-brand-950/30 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ width: '100%', maxWidth: '440px' }}>
+
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-600 rounded-2xl shadow-lg mb-4">
-            <Wallet className="h-7 w-7 text-white" />
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', background: '#0284c7', borderRadius: '16px', marginBottom: '1rem' }}>
+            <Wallet style={{ width: '28px', height: '28px', color: 'white' }} />
           </div>
-          <h1 className="font-display text-3xl font-bold text-surface-900 dark:text-surface-100">
-            FamilyFinance
-          </h1>
-          <p className="text-surface-500 mt-1 text-sm">
-            Start your financial journey together
-          </p>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>FamilyFinance</h1>
+          <p style={{ color: '#64748b', marginTop: '4px', fontSize: '0.875rem' }}>Start your financial journey together</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700 shadow-glass p-8">
-          <h2 className="font-display text-xl font-semibold text-surface-900 dark:text-surface-100 mb-6">
+        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#0f172a', marginTop: 0, marginBottom: '1.5rem' }}>
             Create your account
           </h2>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            <Input
-              label="Full name *"
-              type="text"
-              placeholder="Prasad Bhavsar"
-              leftIcon={<User className="h-4 w-4" />}
-              error={errors.full_name?.message}
-              {...register('full_name')}
-            />
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
-            <Input
-              label="Display name *"
-              type="text"
-              placeholder="Prasad"
-              leftIcon={<User className="h-4 w-4" />}
-              hint="This is how you'll appear to family members"
-              error={errors.display_name?.message}
-              {...register('display_name')}
-            />
+            {/* Full Name */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label className={labelClass}>Full name</label>
+              <input
+                type="text"
+                placeholder="Prasad Bhavsar"
+                className={errors.full_name ? errorFieldClass : fieldClass}
+                {...register('full_name')}
+              />
+              {errors.full_name && <p className={errorClass}>{errors.full_name.message}</p>}
+            </div>
 
-            <Input
-              label="Email address *"
-              type="email"
-              placeholder="prasad@example.com"
-              leftIcon={<Mail className="h-4 w-4" />}
-              error={errors.email?.message}
-              {...register('email')}
-            />
+            {/* Display Name */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label className={labelClass}>Display name</label>
+              <input
+                type="text"
+                placeholder="Prasad"
+                className={errors.display_name ? errorFieldClass : fieldClass}
+                {...register('display_name')}
+              />
+              {errors.display_name && <p className={errorClass}>{errors.display_name.message}</p>}
+              <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Shown to family members</p>
+            </div>
 
-            <Input
-              label="Password *"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Min. 8 characters"
-              leftIcon={<Lock className="h-4 w-4" />}
-              rightIcon={
+            {/* Email */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label className={labelClass}>Email address</label>
+              <input
+                type="email"
+                placeholder="prasad@example.com"
+                className={errors.email ? errorFieldClass : fieldClass}
+                {...register('email')}
+              />
+              {errors.email && <p className={errorClass}>{errors.email.message}</p>}
+            </div>
+
+            {/* Password */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label className={labelClass}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Min. 8 characters"
+                  className={errors.password ? errorFieldClass : fieldClass}
+                  style={{ paddingRight: '2.5rem' }}
+                  {...register('password')}
+                />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="hover:text-surface-600 transition-colors"
+                  onClick={() => setShowPassword(v => !v)}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff style={{ width: '16px', height: '16px' }} /> : <Eye style={{ width: '16px', height: '16px' }} />}
                 </button>
-              }
-              error={errors.password?.message}
-              {...register('password')}
-            />
+              </div>
+              {errors.password && <p className={errorClass}>{errors.password.message}</p>}
+            </div>
 
-            <Input
-              label="Confirm password *"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Re-enter password"
-              leftIcon={<Lock className="h-4 w-4" />}
-              error={errors.confirmPassword?.message}
-              {...register('confirmPassword')}
-            />
+            {/* Confirm Password */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className={labelClass}>Confirm password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Re-enter password"
+                className={errors.confirmPassword ? errorFieldClass : fieldClass}
+                {...register('confirmPassword')}
+              />
+              {errors.confirmPassword && <p className={errorClass}>{errors.confirmPassword.message}</p>}
+            </div>
 
-            <Button
+            {/* Submit */}
+            <button
               type="submit"
-              className="w-full"
-              size="lg"
-              loading={loading}
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: loading ? '#94a3b8' : '#0284c7',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
             >
-              Create account
-            </Button>
+              {loading ? 'Creating account...' : 'Create account'}
+            </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <span className="text-sm text-surface-500">Already have an account? </span>
-            <Link
-              to="/login"
-              className="text-sm font-semibold text-brand-600 hover:text-brand-700"
-            >
+          <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: '#64748b' }}>
+            Already have an account?{' '}
+            <Link to="/login" style={{ color: '#0284c7', fontWeight: '600', textDecoration: 'none' }}>
               Sign in
             </Link>
           </div>
