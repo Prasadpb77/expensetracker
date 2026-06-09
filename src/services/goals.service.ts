@@ -74,16 +74,24 @@ export const goalsService = {
     const { error } = await supabase
       .from('goal_contributions').delete().eq('id', id);
     if (error) throw new Error(toMessage(error));
-    // Manually update saved_amount (trigger handles this but as fallback)
-    await supabase.rpc('update_goal_saved_amount').catch(() => null);
-    // Refetch goal to sync
-    const { data: goal } = await supabase.from('goals').select('saved_amount').eq('id', goalId).single();
+
+    // The DB trigger handles saved_amount on DELETE automatically.
+    // Safety fallback: manually sync in case trigger didn't fire.
+    const { data: goal } = await supabase
+      .from('goals')
+      .select('saved_amount, target_amount')
+      .eq('id', goalId)
+      .single();
+
     if (goal) {
       const newAmount = Math.max(0, Number(goal.saved_amount) - amount);
-      await supabase.from('goals').update({
-        saved_amount: newAmount,
-        is_completed: newAmount >= goal.saved_amount
-      }).eq('id', goalId);
+      await supabase
+        .from('goals')
+        .update({
+          saved_amount: newAmount,
+          is_completed: newAmount >= Number(goal.target_amount),
+        })
+        .eq('id', goalId);
     }
   },
 };
