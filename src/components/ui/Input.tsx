@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { cn } from '@/utils';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -18,10 +17,9 @@ export function Input({
   rightIcon,
   className,
   id,
-  required: _required,  // capture but don't pass to native input
   ...props
 }: InputProps) {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const inputId = id || (label ? `field-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined);
 
   return (
     <div className="space-y-1.5">
@@ -35,12 +33,14 @@ export function Input({
       )}
       <div className="relative">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 pointer-events-none">
             {leftIcon}
           </div>
         )}
         <input
           id={inputId}
+          // Never pass required — let Zod/RHF validate, not the browser
+          required={undefined}
           className={cn(
             'w-full rounded-lg border bg-white dark:bg-surface-900 text-surface-900 dark:text-surface-100',
             'px-3 py-2.5 text-sm transition-colors duration-150',
@@ -62,12 +62,8 @@ export function Input({
           </div>
         )}
       </div>
-      {error && (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
-      )}
-      {hint && !error && (
-        <p className="text-xs text-surface-500">{hint}</p>
-      )}
+      {error && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>}
+      {hint && !error && <p className="text-xs text-surface-500 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -86,10 +82,9 @@ export function Select({
   options,
   className,
   id,
-  required: _required,
   ...props
 }: SelectProps) {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const inputId = id || (label ? `field-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined);
 
   return (
     <div className="space-y-1.5">
@@ -103,6 +98,7 @@ export function Select({
       )}
       <select
         id={inputId}
+        required={undefined}
         className={cn(
           'w-full rounded-lg border bg-white dark:bg-surface-900 text-surface-900 dark:text-surface-100',
           'px-3 py-2.5 text-sm transition-colors duration-150',
@@ -121,8 +117,8 @@ export function Select({
           </option>
         ))}
       </select>
-      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
-      {hint && !error && <p className="text-xs text-surface-500">{hint}</p>}
+      {error && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>}
+      {hint && !error && <p className="text-xs text-surface-500 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -134,7 +130,7 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 }
 
 export function Textarea({ label, error, hint, className, id, ...props }: TextareaProps) {
-  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const inputId = id || (label ? `field-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined);
 
   return (
     <div className="space-y-1.5">
@@ -148,6 +144,7 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
       )}
       <textarea
         id={inputId}
+        required={undefined}
         className={cn(
           'w-full rounded-lg border bg-white dark:bg-surface-900 text-surface-900 dark:text-surface-100',
           'px-3 py-2.5 text-sm transition-colors duration-150 resize-none',
@@ -161,8 +158,8 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
         )}
         {...props}
       />
-      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
-      {hint && !error && <p className="text-xs text-surface-500">{hint}</p>}
+      {error && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{error}</p>}
+      {hint && !error && <p className="text-xs text-surface-500 mt-1">{hint}</p>}
     </div>
   );
 }

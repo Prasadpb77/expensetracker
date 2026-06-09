@@ -7,23 +7,12 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import { Input, Select, Textarea } from '@/components/ui/Input';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { formatCurrency, getBudgetStatus, getMonthName, getCurrentMonthYear } from '@/utils';
 import { EXPENSE_CATEGORIES, CATEGORY_ICONS } from '@/types';
-import type { Budget, BudgetFormData } from '@/types';
 import { cn } from '@/utils';
+import type { Budget, BudgetFormData } from '@/types';
 
-const budgetSchema = z.object({
-  category: z.string().min(1),
-  monthly_limit: z.coerce.number().positive('Limit must be greater than 0'),
-  month: z.coerce.number().min(1).max(12),
-  year: z.coerce.number().min(2020),
-  notes: z.string().optional(),
-});
-
+// ── Inline Budget Form (no RHF, no Zod, plain controlled inputs) ──────────────
 function BudgetForm({
   defaultValues,
   month,
@@ -39,41 +28,103 @@ function BudgetForm({
   onCancel: () => void;
   loading?: boolean;
 }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<BudgetFormData>({
-    resolver: zodResolver(budgetSchema),
-    defaultValues: {
-      category: defaultValues?.category ?? 'Food',
-      monthly_limit: defaultValues?.monthly_limit ?? undefined,
-      month: defaultValues?.month ?? month,
-      year: defaultValues?.year ?? year,
-      notes: defaultValues?.notes ?? '',
-    },
-  });
+  const [category, setCategory] = useState(defaultValues?.category ?? 'Food');
+  const [limitStr, setLimitStr] = useState(defaultValues?.monthly_limit ? String(defaultValues.monthly_limit) : '');
+  const [selMonth, setSelMonth] = useState(defaultValues?.month ?? month);
+  const [selYear, setSelYear] = useState(defaultValues?.year ?? year);
+  const [notes, setNotes] = useState(defaultValues?.notes ?? '');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const categoryOptions = EXPENSE_CATEGORIES.map(c => ({ value: c, label: `${CATEGORY_ICONS[c] ?? ''} ${c}` }));
-  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
-    value: String(i + 1),
-    label: getMonthName(i + 1),
-  }));
-  const yearOptions = [2024, 2025, 2026, 2027].map(y => ({ value: String(y), label: String(y) }));
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!limitStr.trim()) e.limit = 'Monthly limit is required';
+    else if (isNaN(parseFloat(limitStr)) || parseFloat(limitStr) <= 0) e.limit = 'Enter a valid amount greater than 0';
+    return e;
+  };
+
+  const handleSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    const e = validate();
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    await onSubmit({
+      category,
+      monthly_limit: parseFloat(limitStr),
+      month: selMonth,
+      year: selYear,
+      notes: notes || undefined,
+    });
+  };
+
+  const inputCls = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+  const errorInputCls = 'w-full rounded-lg border border-red-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent';
+  const labelCls = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+  const selectCls = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+
+  const monthOptions = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: getMonthName(i + 1) }));
+  const yearOptions = [2024, 2025, 2026, 2027];
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-      <Select label="Category" options={categoryOptions} error={errors.category?.message} required {...register('category')} />
-      <Input label="Monthly Limit (₹)" type="number" step="100" placeholder="10000" error={errors.monthly_limit?.message} required {...register('monthly_limit')} />
-      <div className="grid grid-cols-2 gap-4">
-        <Select label="Month" options={monthOptions} error={errors.month?.message} required {...register('month')} />
-        <Select label="Year" options={yearOptions} error={errors.year?.message} required {...register('year')} />
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <div>
+        <label className={labelCls}>Category</label>
+        <select className={selectCls} value={category} onChange={e => setCategory(e.target.value)}>
+          {EXPENSE_CATEGORIES.map(c => (
+            <option key={c} value={c}>{CATEGORY_ICONS[c] ?? ''} {c}</option>
+          ))}
+        </select>
       </div>
-      <Textarea label="Notes" placeholder="Optional notes..." rows={2} {...register('notes')} />
-      <div className="flex gap-3 pt-2">
+
+      <div>
+        <label className={labelCls}>Monthly Limit (₹)</label>
+        <input
+          type="text"
+          inputMode="decimal"
+          placeholder="10000"
+          value={limitStr}
+          onChange={e => { setLimitStr(e.target.value); setErrors(p => ({ ...p, limit: '' })); }}
+          className={errors.limit ? errorInputCls : inputCls}
+        />
+        {errors.limit && <p style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 4 }}>{errors.limit}</p>}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div>
+          <label className={labelCls}>Month</label>
+          <select className={selectCls} value={selMonth} onChange={e => setSelMonth(Number(e.target.value))}>
+            {monthOptions.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Year</label>
+          <select className={selectCls} value={selYear} onChange={e => setSelYear(Number(e.target.value))}>
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>Notes (optional)</label>
+        <textarea
+          rows={2}
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Optional notes..."
+          className={inputCls}
+          style={{ resize: 'none' }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>
-        <Button type="submit" loading={loading} className="flex-1">{defaultValues ? 'Update Budget' : 'Set Budget'}</Button>
+        <Button type="submit" loading={loading} className="flex-1">
+          {defaultValues ? 'Update Budget' : 'Set Budget'}
+        </Button>
       </div>
     </form>
   );
 }
 
+// ── Main BudgetPage ────────────────────────────────────────────────────────────
 export function BudgetPage() {
   const { profile, addToast } = useAppStore();
   const { user } = useAuth();
@@ -166,7 +217,6 @@ export function BudgetPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-surface-900 dark:text-surface-100">Budget</h2>
@@ -191,18 +241,13 @@ export function BudgetPage() {
           </div>
           <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="h-5 w-5" /></Button>
         </div>
-
         {totalLimit > 0 && (
           <div className="mt-4">
             <div className="flex justify-between text-xs text-surface-400 mb-1">
-              <span>Overall Budget</span>
-              <span>{overallPct}% used</span>
+              <span>Overall Budget</span><span>{overallPct}% used</span>
             </div>
             <div className="w-full bg-surface-100 dark:bg-surface-700 rounded-full h-2">
-              <div
-                className={cn('h-2 rounded-full transition-all duration-500', bgColor)}
-                style={{ width: `${Math.min(overallPct, 100)}%` }}
-              />
+              <div className={cn('h-2 rounded-full transition-all duration-500', bgColor)} style={{ width: `${Math.min(overallPct, 100)}%` }} />
             </div>
           </div>
         )}
@@ -231,7 +276,6 @@ export function BudgetPage() {
             const { status, color, bgColor: barColor } = getBudgetStatus(pct);
             const icon = CATEGORY_ICONS[budget.category] ?? '📦';
             const remaining = budget.remaining ?? 0;
-
             return (
               <Card key={budget.id} className="group relative">
                 <div className="flex items-start justify-between mb-3">
@@ -253,25 +297,15 @@ export function BudgetPage() {
                     </Button>
                   </div>
                 </div>
-
                 <div className="w-full bg-surface-100 dark:bg-surface-700 rounded-full h-2 mb-2">
-                  <div
-                    className={cn('h-2 rounded-full transition-all duration-500', barColor)}
-                    style={{ width: `${Math.min(pct, 100)}%` }}
-                  />
+                  <div className={cn('h-2 rounded-full transition-all duration-500', barColor)} style={{ width: `${Math.min(pct, 100)}%` }} />
                 </div>
-
                 <div className="flex items-center justify-between">
-                  <Badge
-                    variant={status === 'good' ? 'success' : status === 'warning' ? 'warning' : 'error'}
-                    size="sm"
-                  >
+                  <Badge variant={status === 'good' ? 'success' : status === 'warning' ? 'warning' : 'error'} size="sm">
                     {pct.toFixed(0)}% used
                   </Badge>
                   <span className={cn('text-xs font-medium', color)}>
-                    {remaining >= 0
-                      ? `${formatCurrency(remaining)} left`
-                      : `${formatCurrency(Math.abs(remaining))} over`}
+                    {remaining >= 0 ? `${formatCurrency(remaining)} left` : `${formatCurrency(Math.abs(remaining))} over`}
                   </span>
                 </div>
               </Card>
@@ -280,19 +314,16 @@ export function BudgetPage() {
         </div>
       )}
 
-      {/* Add Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Set Budget" size="md">
         <BudgetForm month={month} year={year} onSubmit={handleAdd} onCancel={() => setShowAddModal(false)} loading={submitting} />
       </Modal>
 
-      {/* Edit Modal */}
       <Modal isOpen={!!editingBudget} onClose={() => setEditingBudget(null)} title="Edit Budget" size="md">
         {editingBudget && (
           <BudgetForm defaultValues={editingBudget} month={month} year={year} onSubmit={handleEdit} onCancel={() => setEditingBudget(null)} loading={submitting} />
         )}
       </Modal>
 
-      {/* Delete Confirm */}
       <ConfirmDialog
         isOpen={!!deletingId}
         onClose={() => setDeletingId(null)}

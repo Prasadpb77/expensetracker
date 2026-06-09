@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { EXPENSE_CATEGORIES } from '@/types';
 import { useAppStore } from '@/contexts/store';
@@ -11,15 +10,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Expense, ExpenseFormData } from '@/types';
 
 const expenseSchema = z.object({
-  amount: z.coerce.number().positive('Amount must be greater than 0'),
+  amount: z
+    .string()
+    .min(1, 'Amount is required')
+    .refine(v => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Enter a valid amount greater than 0'),
   category: z.string().min(1, 'Category is required'),
   description: z.string().min(1, 'Description is required'),
   date: z.string().min(1, 'Date is required'),
   paid_by: z.string().min(1, 'Please select who paid'),
   is_shared: z.boolean(),
-  split_ratio: z.coerce.number().min(0).max(1),
+  split_ratio: z.string(),
   notes: z.string().optional(),
 });
+
+type ExpenseFormRaw = z.infer<typeof expenseSchema>;
 
 interface ExpenseFormProps {
   defaultValues?: Expense;
@@ -27,6 +31,13 @@ interface ExpenseFormProps {
   onCancel: () => void;
   loading?: boolean;
 }
+
+const inputCls = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+const errorInputCls = 'w-full rounded-lg border border-red-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent';
+const labelCls = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+const errorMsgCls = 'text-xs text-red-600 mt-1';
+const selectCls = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+const errorSelectCls = 'w-full rounded-lg border border-red-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent';
 
 export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: ExpenseFormProps) {
   const { user } = useAuth();
@@ -38,16 +49,16 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
     watch,
     reset,
     formState: { errors },
-  } = useForm<ExpenseFormData>({
+  } = useForm<ExpenseFormRaw>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      amount: defaultValues?.amount ?? undefined,
+      amount: defaultValues?.amount ? String(defaultValues.amount) : '',
       category: defaultValues?.category ?? 'Food',
       description: defaultValues?.description ?? '',
       date: defaultValues?.date ?? format(new Date(), 'yyyy-MM-dd'),
       paid_by: defaultValues?.paid_by ?? user?.id ?? '',
       is_shared: defaultValues?.is_shared ?? false,
-      split_ratio: defaultValues?.split_ratio ?? 0.5,
+      split_ratio: defaultValues?.split_ratio ? String(defaultValues.split_ratio) : '0.5',
       notes: defaultValues?.notes ?? '',
     },
   });
@@ -55,13 +66,13 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
   useEffect(() => {
     if (defaultValues) {
       reset({
-        amount: defaultValues.amount,
+        amount: String(defaultValues.amount),
         category: defaultValues.category,
         description: defaultValues.description,
         date: defaultValues.date,
         paid_by: defaultValues.paid_by,
         is_shared: defaultValues.is_shared,
-        split_ratio: defaultValues.split_ratio,
+        split_ratio: String(defaultValues.split_ratio),
         notes: defaultValues.notes ?? '',
       });
     }
@@ -69,81 +80,109 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
 
   const isShared = watch('is_shared');
 
-  const categoryOptions = EXPENSE_CATEGORIES.map(c => ({ value: c, label: c }));
-  const memberOptions = familyMembers.map(m => ({
-    value: m.id,
-    label: m.display_name + (m.id === user?.id ? ' (You)' : ''),
-  }));
+  const handleFormSubmit = async (raw: ExpenseFormRaw) => {
+    await onSubmit({
+      amount: parseFloat(raw.amount),
+      category: raw.category,
+      description: raw.description,
+      date: raw.date,
+      paid_by: raw.paid_by,
+      is_shared: raw.is_shared,
+      split_ratio: parseFloat(raw.split_ratio),
+      notes: raw.notes,
+    });
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="Amount (₹)"
-          type="number"
-          step="0.01"
-          placeholder="500"
-          error={errors.amount?.message}
-          {...register('amount')}
-        />
-        <Select
-          label="Category"
-          options={categoryOptions}
-          error={errors.category?.message}
-          {...register('category')}
-        />
+    <form onSubmit={handleSubmit(handleFormSubmit)} noValidate className="space-y-4">
+
+      {/* Amount + Category */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div>
+          <label className={labelCls}>Amount (₹)</label>
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="500"
+            className={errors.amount ? errorInputCls : inputCls}
+            {...register('amount')}
+          />
+          {errors.amount && <p className={errorMsgCls}>{errors.amount.message}</p>}
+        </div>
+        <div>
+          <label className={labelCls}>Category</label>
+          <select className={errors.category ? errorSelectCls : selectCls} {...register('category')}>
+            {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {errors.category && <p className={errorMsgCls}>{errors.category.message}</p>}
+        </div>
       </div>
 
-      <Input
-        label="Description"
-        type="text"
-        placeholder="e.g. Dinner at Taj"
-        error={errors.description?.message}
-        {...register('description')}
-      />
-
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="Date"
-          type="date"
-          error={errors.date?.message}
-          {...register('date')}
+      {/* Description */}
+      <div>
+        <label className={labelCls}>Description</label>
+        <input
+          type="text"
+          placeholder="e.g. Dinner at restaurant"
+          className={errors.description ? errorInputCls : inputCls}
+          {...register('description')}
         />
-        <Select
-          label="Paid By"
-          options={memberOptions.length > 0 ? memberOptions : [{ value: user?.id ?? '', label: 'You' }]}
-          error={errors.paid_by?.message}
-          {...register('paid_by')}
-        />
+        {errors.description && <p className={errorMsgCls}>{errors.description.message}</p>}
       </div>
 
-      {/* Shared expense toggle */}
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700">
+      {/* Date + Paid By */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div>
+          <label className={labelCls}>Date</label>
+          <input
+            type="date"
+            className={errors.date ? errorInputCls : inputCls}
+            {...register('date')}
+          />
+          {errors.date && <p className={errorMsgCls}>{errors.date.message}</p>}
+        </div>
+        <div>
+          <label className={labelCls}>Paid By</label>
+          <select className={errors.paid_by ? errorSelectCls : selectCls} {...register('paid_by')}>
+            {familyMembers.length > 0
+              ? familyMembers.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}{m.id === user?.id ? ' (You)' : ''}
+                  </option>
+                ))
+              : <option value={user?.id ?? ''}>{user?.email ?? 'You'}</option>
+            }
+          </select>
+          {errors.paid_by && <p className={errorMsgCls}>{errors.paid_by.message}</p>}
+        </div>
+      </div>
+
+      {/* Shared toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
         <input
           type="checkbox"
           id="is_shared"
-          className="w-4 h-4 rounded text-brand-600 border-surface-300 focus:ring-brand-500"
+          style={{ width: 16, height: 16, accentColor: '#0284c7', cursor: 'pointer' }}
           {...register('is_shared')}
         />
-        <label htmlFor="is_shared" className="text-sm font-medium text-surface-700 dark:text-surface-300 cursor-pointer">
+        <label htmlFor="is_shared" style={{ fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }} className="text-gray-700 dark:text-gray-300">
           Shared expense (split between both)
         </label>
       </div>
 
+      {/* Split ratio */}
       {isShared && (
         <div>
-          <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
-            Your share ratio (0 to 1)
-          </label>
+          <label className={labelCls}>Your share ratio (0 to 1)</label>
           <input
             type="range"
             min="0"
             max="1"
             step="0.1"
-            className="w-full accent-brand-600"
+            style={{ width: '100%', accentColor: '#0284c7' }}
             {...register('split_ratio')}
           />
-          <div className="flex justify-between text-xs text-surface-400 mt-1">
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
             <span>0% (Spouse pays all)</span>
             <span>50/50</span>
             <span>100% (You pay all)</span>
@@ -151,18 +190,20 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
         </div>
       )}
 
-      <Textarea
-        label="Notes (optional)"
-        placeholder="Any additional notes..."
-        rows={2}
-        error={errors.notes?.message}
-        {...register('notes')}
-      />
+      {/* Notes */}
+      <div>
+        <label className={labelCls}>Notes (optional)</label>
+        <textarea
+          rows={2}
+          placeholder="Any additional notes..."
+          className={inputCls}
+          style={{ resize: 'none' }}
+          {...register('notes')}
+        />
+      </div>
 
-      <div className="flex gap-3 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-          Cancel
-        </Button>
+      <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
+        <Button type="button" variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>
         <Button type="submit" loading={loading} className="flex-1">
           {defaultValues ? 'Update Expense' : 'Add Expense'}
         </Button>
