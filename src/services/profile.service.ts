@@ -1,6 +1,25 @@
 import { supabase } from '@/lib/supabase';
 import type { Profile, Family } from '@/types';
 
+// Extract a readable message from any error type (Supabase PostgrestError, Error, string, etc.)
+function toMessage(e: unknown): string {
+  if (!e) return 'Unknown error';
+  if (typeof e === 'string') return e;
+  if (typeof e === 'object') {
+    const obj = e as Record<string, unknown>;
+    // Supabase PostgrestError shape
+    if (obj.message) return String(obj.message);
+    if (obj.details) return String(obj.details);
+    if (obj.hint) return String(obj.hint);
+    if (obj.error_description) return String(obj.error_description);
+  }
+  return 'Unknown error occurred';
+}
+
+function throwReadable(e: unknown, fallback: string): never {
+  throw new Error(toMessage(e) || fallback);
+}
+
 export const profileService = {
   async getProfile(userId: string): Promise<Profile> {
     const { data, error } = await supabase
@@ -8,7 +27,7 @@ export const profileService = {
       .select('*')
       .eq('id', userId)
       .single();
-    if (error) throw error;
+    if (error) throwReadable(error, 'Failed to load profile');
     return data;
   },
 
@@ -19,7 +38,7 @@ export const profileService = {
       .eq('id', userId)
       .select()
       .single();
-    if (error) throw error;
+    if (error) throwReadable(error, 'Failed to update profile');
     return data;
   },
 
@@ -28,42 +47,51 @@ export const profileService = {
       .from('profiles')
       .select('*')
       .eq('family_id', familyId);
-    if (error) throw error;
+    if (error) throwReadable(error, 'Failed to load family members');
     return data || [];
   },
 
   async createFamily(name: string, userId: string): Promise<Family> {
-    const { data, error } = await supabase
+    // Step 1: Insert family
+    const { data: family, error: insertError } = await supabase
       .from('families')
       .insert({ name, created_by: userId })
       .select()
       .single();
-    if (error) throw error;
 
-    // Update user profile with family_id and role
-    await supabase
+    if (insertError) throwReadable(insertError, 'Failed to create family');
+
+    // Step 2: Link user profile to family
+    const { error: updateError } = await supabase
       .from('profiles')
-      .update({ family_id: data.id, role: 'primary' })
+      .update({ family_id: family.id, role: 'primary' })
       .eq('id', userId);
 
-    return data;
+    if (updateError) throwReadable(updateError, 'Family created but failed to link your profile');
+
+    return family;
   },
 
   async joinFamily(inviteCode: string, userId: string): Promise<Family> {
-    const { data: family, error: familyError } = await supabase
+    // Step 1: Look up family by invite code
+    const { data: family, error: lookupError } = await supabase
       .from('families')
       .select('*')
-      .eq('invite_code', inviteCode)
+      .eq('invite_code', inviteCode.trim())
       .single();
 
-    if (familyError || !family) throw new Error('Invalid invite code');
+    if (lookupError || !family) {
+      throw new Error('Invalid invite code. Please check and try again.');
+    }
 
-    const { error } = await supabase
+    // Step 2: Link user to that family
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({ family_id: family.id, role: 'spouse' })
       .eq('id', userId);
 
-    if (error) throw error;
+    if (updateError) throwReadable(updateError, 'Found family but failed to join it');
+
     return family;
   },
 
@@ -73,7 +101,7 @@ export const profileService = {
       .select('*')
       .eq('id', familyId)
       .single();
-    if (error) throw error;
+    if (error) throwReadable(error, 'Failed to load family');
     return data;
   },
 
@@ -84,7 +112,7 @@ export const profileService = {
       .eq('id', familyId)
       .select()
       .single();
-    if (error) throw error;
+    if (error) throwReadable(error, 'Failed to update family');
     return data;
   },
 };
