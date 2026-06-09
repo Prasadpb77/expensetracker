@@ -152,6 +152,8 @@ export function ExpenseForm({ defaultValues, onSubmit, onCancel, loading }: Expe
                 ))
               : <option value={user?.id ?? ''}>{user?.email ?? 'You'}</option>
             }
+            <option value="joint_account">💳 Joint Account</option>
+            <option value="credit_card">💳 Credit Card</option>
           </select>
           {errors.paid_by && <p className={errorMsgCls}>{errors.paid_by.message}</p>}
         </div>

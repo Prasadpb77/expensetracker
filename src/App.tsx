@@ -12,6 +12,8 @@ import { ExpensesPage } from '@/pages/expenses/ExpensesPage';
 import { BudgetPage } from '@/pages/budget/BudgetPage';
 import { ReportsPage } from '@/pages/reports/ReportsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
+import { InvestmentsPage } from '@/pages/investments/InvestmentsPage';
+import { GoalsPage } from '@/pages/goals/GoalsPage';
 
 export function App() {
   return (
@@ -31,6 +33,8 @@ export function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/income" element={<IncomePage />} />
               <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/investments" element={<InvestmentsPage />} />
+              <Route path="/goals" element={<GoalsPage />} />
               <Route path="/budget" element={<BudgetPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<SettingsPage />} />

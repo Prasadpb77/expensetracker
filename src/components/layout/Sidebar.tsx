@@ -14,6 +14,7 @@ import {
   X,
   Wallet,
   Users,
+  Target,
 } from 'lucide-react';
 import { cn, getInitials } from '@/utils';
 import { useAppStore } from '@/contexts/store';
@@ -24,7 +25,9 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Income', href: '/income', icon: TrendingUp },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
-  { name: 'Budget', href: '/budget', icon: PiggyBank },
+  { name: 'Investments', href: '/investments', icon: PiggyBank },
+  { name: 'Goals', href: '/goals', icon: Target },
+  { name: 'Budget', href: '/budget', icon: Wallet },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];

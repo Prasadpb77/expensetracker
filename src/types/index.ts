@@ -6,6 +6,9 @@ export type UserRole = 'primary' | 'spouse' | 'member';
 export type IncomeSource = 'Salary' | 'Bonus' | 'Freelance' | 'Interest' | 'Rental' | 'Other';
 export type CategoryType = 'expense' | 'income' | 'both';
 
+export const PAID_BY_SPECIAL = ['Joint Account', 'Credit Card'] as const;
+export type PaidBySpecial = typeof PAID_BY_SPECIAL[number];
+
 export const EXPENSE_CATEGORIES = [
   'Food',
   'Groceries',
@@ -290,4 +293,50 @@ export interface RegisterFormData {
 
 export interface ForgotPasswordFormData {
   email: string;
+}
+
+// ============================================================
+// Goals Types
+// ============================================================
+
+export const GOAL_ICONS = ['🚗', '🏠', '✈️', '📱', '💍', '🎓', '🏖️', '💊', '🛋️', '💻', '📷', '🎸', '⛵', '🏋️', '🌟'] as const;
+
+export interface Goal {
+  id: string;
+  family_id: string;
+  created_by: string;
+  name: string;
+  icon: string;
+  target_amount: number;
+  saved_amount: number;
+  deadline?: string;
+  notes?: string;
+  is_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalContribution {
+  id: string;
+  goal_id: string;
+  user_id: string;
+  family_id: string;
+  amount: number;
+  notes?: string;
+  date: string;
+  created_at: string;
+}
+
+export interface GoalFormData {
+  name: string;
+  icon: string;
+  target_amount: number;
+  deadline?: string;
+  notes?: string;
+}
+
+export interface ContributionFormData {
+  amount: number;
+  notes?: string;
+  date: string;
 }
