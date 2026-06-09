@@ -9,9 +9,19 @@ export type CategoryType = 'expense' | 'income' | 'both';
 export const PAID_BY_SPECIAL = ['Joint Account', 'Credit Card'] as const;
 export type PaidBySpecial = typeof PAID_BY_SPECIAL[number];
 
+export type PaymentMethod = 'personal' | 'joint_account' | 'credit_card';
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  personal: 'Personal',
+  joint_account: '🏦 Joint Account',
+  credit_card: '💳 Credit Card',
+};
+
 export const EXPENSE_CATEGORIES = [
   'Food',
   'Groceries',
+  'Fruits & Dry Fruits',
+  'Vegetables',
   'Transport',
   'Fuel',
   'Shopping',
@@ -25,6 +35,9 @@ export const EXPENSE_CATEGORIES = [
   'Travel',
   'Investment',
   'Education',
+  'Family Contribution',
+  'RD / Goals',
+  'Gifts',
   'Miscellaneous',
 ] as const;
 
@@ -37,6 +50,8 @@ export const INCOME_SOURCES: IncomeSource[] = [
 export const CATEGORY_ICONS: Record<string, string> = {
   Food: '🍔',
   Groceries: '🛒',
+  'Fruits & Dry Fruits': '🍎',
+  Vegetables: '🥦',
   Transport: '🚗',
   Fuel: '⛽',
   Shopping: '🛍️',
@@ -50,6 +65,9 @@ export const CATEGORY_ICONS: Record<string, string> = {
   Travel: '✈️',
   Investment: '📈',
   Education: '📚',
+  'Family Contribution': '👨‍👩‍👧',
+  'RD / Goals': '🎯',
+  Gifts: '🎁',
   Miscellaneous: '📦',
   Salary: '💼',
   Bonus: '🎁',
@@ -62,6 +80,8 @@ export const CATEGORY_ICONS: Record<string, string> = {
 export const CATEGORY_COLORS: Record<string, string> = {
   Food: '#f97316',
   Groceries: '#84cc16',
+  'Fruits & Dry Fruits': '#a3e635',
+  Vegetables: '#22c55e',
   Transport: '#06b6d4',
   Fuel: '#f59e0b',
   Shopping: '#ec4899',
@@ -75,6 +95,9 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Travel: '#0ea5e9',
   Investment: '#16a34a',
   Education: '#7c3aed',
+  'Family Contribution': '#f43f5e',
+  'RD / Goals': '#4f46e5',
+  Gifts: '#db2777',
   Miscellaneous: '#64748b',
 };
 
@@ -145,13 +168,13 @@ export interface Expense {
   description: string;
   date: string;
   paid_by: string;
+  payment_method: PaymentMethod;
   is_shared: boolean;
   split_ratio: number;
   notes?: string;
   receipt_url?: string;
   created_at: string;
   updated_at: string;
-  // Joined
   profile?: Pick<Profile, 'id' | 'display_name' | 'full_name'>;
   paid_by_profile?: Pick<Profile, 'id' | 'display_name' | 'full_name'>;
 }
@@ -162,6 +185,7 @@ export interface ExpenseFormData {
   description: string;
   date: string;
   paid_by: string;
+  payment_method: PaymentMethod;
   is_shared: boolean;
   split_ratio: number;
   notes?: string;

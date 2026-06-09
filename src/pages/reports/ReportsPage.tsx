@@ -92,6 +92,8 @@ export function ReportsPage() {
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
   const totalSavings = totalIncome - totalExpenses;
   const savingsRate = calculateSavingsRate(totalIncome, totalExpenses);
+  const jointTotal = expenses.filter(e => e.payment_method === 'joint_account').reduce((s, e) => s + Number(e.amount), 0);
+  const creditTotal = expenses.filter(e => e.payment_method === 'credit_card').reduce((s, e) => s + Number(e.amount), 0);
 
   const handleExportExpenses = () => {
     const data = expenses.map(e => ({
@@ -187,6 +189,32 @@ export function ReportsPage() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* Payment Method Widgets */}
+      <div className="grid grid-cols-2 gap-4">
+        <div style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', borderRadius: 14, border: '1px solid #bfdbfe', padding: '1.1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>🏦</div>
+            <p style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>Joint Account Spend</p>
+          </div>
+          <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1d4ed8', margin: 0 }}>{formatCurrency(jointTotal)}</p>
+          <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '3px 0 0' }}>
+            {expenses.filter(e => e.payment_method === 'joint_account').length} transactions
+            {totalExpenses > 0 && ` · ${((jointTotal / totalExpenses) * 100).toFixed(1)}% of total`}
+          </p>
+        </div>
+        <div style={{ background: 'linear-gradient(135deg, #fff1f2, #ffe4e6)', borderRadius: 14, border: '1px solid #fecdd3', padding: '1.1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>💳</div>
+            <p style={{ fontSize: '0.72rem', color: '#be123c', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>Credit Card Spend</p>
+          </div>
+          <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#be123c', margin: 0 }}>{formatCurrency(creditTotal)}</p>
+          <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '3px 0 0' }}>
+            {expenses.filter(e => e.payment_method === 'credit_card').length} transactions
+            {totalExpenses > 0 && ` · ${((creditTotal / totalExpenses) * 100).toFixed(1)}% of total`}
+          </p>
+        </div>
       </div>
 
       {/* Charts */}
