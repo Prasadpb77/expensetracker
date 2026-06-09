@@ -18,13 +18,10 @@ export const expenseService = {
     familyId: string,
     filters?: { dateRange?: DateRange; category?: string; userId?: string; isShared?: boolean; search?: string }
   ): Promise<Expense[]> {
+    // No profile join — avoids schema cache errors
     let query = supabase
       .from('expenses')
-      .select(`
-        *,
-        profile:profiles!expenses_user_id_fkey(id, display_name, full_name),
-        paid_by_profile:profiles!expenses_paid_by_fkey(id, display_name, full_name)
-      `)
+      .select('*')
       .eq('family_id', familyId)
       .order('date', { ascending: false });
 
@@ -42,7 +39,8 @@ export const expenseService = {
   },
 
   async getById(id: string): Promise<Expense> {
-    const { data, error } = await supabase.from('expenses').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+      .from('expenses').select('*').eq('id', id).single();
     if (error) throw new Error(toMessage(error));
     return data;
   },
@@ -71,15 +69,16 @@ export const expenseService = {
 
   async getTotalByDateRange(familyId: string, from: string, to: string): Promise<number> {
     const { data, error } = await supabase
-      .from('expenses').select('amount').eq('family_id', familyId).gte('date', from).lte('date', to);
+      .from('expenses').select('amount')
+      .eq('family_id', familyId).gte('date', from).lte('date', to);
     if (error) throw new Error(toMessage(error));
     return (data || []).reduce((sum, row) => sum + Number(row.amount), 0);
   },
 
   async getCategoryBreakdown(familyId: string, from: string, to: string): Promise<CategoryData[]> {
     const { data, error } = await supabase
-      .from('expenses').select('category, amount').eq('family_id', familyId)
-      .gte('date', from).lte('date', to);
+      .from('expenses').select('category, amount')
+      .eq('family_id', familyId).gte('date', from).lte('date', to);
     if (error) throw new Error(toMessage(error));
 
     const categoryMap: Record<string, number> = {};
@@ -105,8 +104,10 @@ export const expenseService = {
     from.setDate(1);
 
     const { data, error } = await supabase
-      .from('expenses').select('amount, date').eq('family_id', familyId)
-      .gte('date', from.toISOString().split('T')[0]).order('date', { ascending: true });
+      .from('expenses').select('amount, date')
+      .eq('family_id', familyId)
+      .gte('date', from.toISOString().split('T')[0])
+      .order('date', { ascending: true });
     if (error) throw new Error(toMessage(error));
 
     const monthlyMap: Record<string, number> = {};
@@ -119,8 +120,8 @@ export const expenseService = {
 
   async getByUser(familyId: string, from: string, to: string): Promise<{ userId: string; total: number }[]> {
     const { data, error } = await supabase
-      .from('expenses').select('paid_by, amount').eq('family_id', familyId)
-      .gte('date', from).lte('date', to);
+      .from('expenses').select('paid_by, amount')
+      .eq('family_id', familyId).gte('date', from).lte('date', to);
     if (error) throw new Error(toMessage(error));
 
     const userMap: Record<string, number> = {};

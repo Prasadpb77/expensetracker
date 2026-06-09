@@ -17,9 +17,10 @@ export const incomeService = {
     familyId: string,
     filters?: { dateRange?: DateRange; source?: string; userId?: string }
   ): Promise<Income[]> {
+    // No join on profiles — fetch income only, enrich from store if needed
     let query = supabase
       .from('income')
-      .select(`*, profile:profiles!income_user_id_fkey(id, display_name, full_name)`)
+      .select('*')
       .eq('family_id', familyId)
       .order('date', { ascending: false });
 
@@ -35,7 +36,8 @@ export const incomeService = {
   },
 
   async getById(id: string): Promise<Income> {
-    const { data, error } = await supabase.from('income').select('*').eq('id', id).single();
+    const { data, error } = await supabase
+      .from('income').select('*').eq('id', id).single();
     if (error) throw new Error(toMessage(error));
     return data;
   },
@@ -64,7 +66,8 @@ export const incomeService = {
 
   async getTotalByDateRange(familyId: string, from: string, to: string): Promise<number> {
     const { data, error } = await supabase
-      .from('income').select('amount').eq('family_id', familyId).gte('date', from).lte('date', to);
+      .from('income').select('amount')
+      .eq('family_id', familyId).gte('date', from).lte('date', to);
     if (error) throw new Error(toMessage(error));
     return (data || []).reduce((sum, row) => sum + Number(row.amount), 0);
   },
@@ -75,8 +78,10 @@ export const incomeService = {
     from.setDate(1);
 
     const { data, error } = await supabase
-      .from('income').select('amount, date').eq('family_id', familyId)
-      .gte('date', from.toISOString().split('T')[0]).order('date', { ascending: true });
+      .from('income').select('amount, date')
+      .eq('family_id', familyId)
+      .gte('date', from.toISOString().split('T')[0])
+      .order('date', { ascending: true });
     if (error) throw new Error(toMessage(error));
 
     const monthlyMap: Record<string, number> = {};
