@@ -2,13 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/expense-tracker/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="FamilyFinance - Personal expense management for couples" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/expense-tracker/manifest.json" />
+    <meta name="theme-color" content="#0284c7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FamilyFinance" />
+    <link rel="apple-touch-icon" href="/expense-tracker/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/expense-tracker/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/expense-tracker/icons/icon-144.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/expense-tracker/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/expense-tracker/icons/icon-96.png" />
+
     <title>FamilyFinance</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
     <!-- GitHub Pages SPA routing fix -->
     <script type="text/javascript">
       (function(l) {
@@ -26,5 +46,16 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Register Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/expense-tracker/sw.js')
+            .then(function(reg) { console.log('SW registered:', reg.scope); })
+            .catch(function(err) { console.log('SW registration failed:', err); });
+        });
+      }
+    </script>
   </body>
 </html>

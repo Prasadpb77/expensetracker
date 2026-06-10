@@ -7,6 +7,7 @@ import { authService } from '@/services/auth.service';
 import { Badge } from '@/components/ui/Badge';
 import { getInitials } from '@/utils';
 import { useNavigate } from 'react-router-dom';
+import { BiometricSetup } from '@/components/ui/BiometricSetup';
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -307,6 +308,9 @@ export function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* ── BIOMETRIC LOGIN ── */}
+      <BiometricSetup />
 
       {/* ── SIGN OUT ── */}
       <div className={cardClass}>
