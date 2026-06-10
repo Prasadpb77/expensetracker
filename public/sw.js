@@ -1,8 +1,8 @@
 // FamilyFinance Service Worker
 const CACHE_NAME = 'family-finance-v1';
 const STATIC_ASSETS = [
-  '/expense-tracker/',
-  '/expense-tracker/index.html',
+  '/expensetracker/',
+  '/expensetracker/index.html',
 ];
 
 self.addEventListener('install', (event) => {
@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match('/expense-tracker/') || caches.match('/expense-tracker/index.html'))
+        .catch(() => caches.match('/expensetracker/') || caches.match('/expensetracker/index.html'))
     );
     return;
   }
