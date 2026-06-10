@@ -4,34 +4,37 @@
 // ============================================================
 
 const RP_NAME = 'FamilyFinance';
-const RP_ID = window.location.hostname; // e.g. prasad.github.io
+const RP_ID = window.location.hostname;
 
 // Convert base64url string to Uint8Array
 function base64urlToUint8Array(base64url: string): Uint8Array {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
   const binary = atob(padded);
-  return Uint8Array.from(binary, c => c.charCodeAt(0));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
-// Convert ArrayBuffer / Uint8Array to base64url string
-function uint8ArrayToBase64url(buffer: ArrayBuffer | Uint8Array): string {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+// Convert ArrayBuffer to base64url string
+function arrayBufferToBase64url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
   let binary = '';
-  bytes.forEach(b => binary += String.fromCharCode(b));
+  bytes.forEach(b => (binary += String.fromCharCode(b)));
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
-// Generate a random challenge
-function generateChallenge(): Uint8Array {
-  return crypto.getRandomValues(new Uint8Array(32));
+// Generate a random challenge as plain ArrayBuffer (no SharedArrayBuffer)
+function generateChallenge(): ArrayBuffer {
+  const buf = new ArrayBuffer(32);
+  crypto.getRandomValues(new Uint8Array(buf));
+  return buf;
 }
 
-// Check if WebAuthn / biometrics is supported on this device
+// Check if WebAuthn is supported
 export function isBiometricSupported(): boolean {
   return (
     typeof window !== 'undefined' &&
-    window.PublicKeyCredential !== undefined &&
     typeof window.PublicKeyCredential === 'function'
   );
 }
@@ -47,9 +50,8 @@ export async function isBiometricAvailable(): Promise<boolean> {
 }
 
 // ── REGISTER ────────────────────────────────────────────────
-// Call this when user wants to set up biometric login
 export interface RegisterBiometricOptions {
-  userId: string;       // Supabase user UUID
+  userId: string;
   userEmail: string;
   displayName: string;
 }
@@ -64,46 +66,46 @@ export async function registerBiometric(
 ): Promise<BiometricCredential> {
   const challenge = generateChallenge();
 
-  // Encode userId as bytes (must be max 64 bytes)
-  const userIdBytes = new TextEncoder().encode(opts.userId.slice(0, 64));
+  // Encode userId into a plain ArrayBuffer (max 64 bytes)
+  const userIdEncoded = new TextEncoder().encode(opts.userId.slice(0, 64));
+  const userIdBuf = new ArrayBuffer(userIdEncoded.length);
+  new Uint8Array(userIdBuf).set(userIdEncoded);
 
   const credential = await navigator.credentials.create({
     publicKey: {
-      challenge,
+      challenge,                          // already plain ArrayBuffer
       rp: { name: RP_NAME, id: RP_ID },
       user: {
-        id: userIdBytes,
+        id: userIdBuf,                    // plain ArrayBuffer ✓
         name: opts.userEmail,
         displayName: opts.displayName,
       },
       pubKeyCredParams: [
-        { alg: -7, type: 'public-key' },   // ES256 (most common)
+        { alg: -7,   type: 'public-key' }, // ES256
         { alg: -257, type: 'public-key' }, // RS256 (Windows Hello)
       ],
       authenticatorSelection: {
-        authenticatorAttachment: 'platform', // device built-in only (Face ID, Touch ID)
-        userVerification: 'required',        // must verify with biometric
+        authenticatorAttachment: 'platform',
+        userVerification: 'required',
         residentKey: 'preferred',
       },
       timeout: 60000,
     },
-  }) as PublicKeyCredential;
+  }) as PublicKeyCredential | null;
 
   if (!credential) throw new Error('Biometric registration cancelled');
 
   const response = credential.response as AuthenticatorAttestationResponse;
-
-  // Store the credential ID and public key (we store raw for simplicity)
-  const credentialId = uint8ArrayToBase64url(credential.rawId);
-  const publicKey = uint8ArrayToBase64url(response.getPublicKey() || new ArrayBuffer(0));
+  const credentialId = arrayBufferToBase64url(credential.rawId);
+  const pkBuf = response.getPublicKey();
+  const publicKey = pkBuf ? arrayBufferToBase64url(pkBuf) : '';
 
   return { credentialId, publicKey };
 }
 
 // ── AUTHENTICATE ────────────────────────────────────────────
-// Call this to authenticate with Face ID / fingerprint
 export interface AuthenticateOptions {
-  credentialId: string; // stored credential ID
+  credentialId: string;
 }
 
 export async function authenticateWithBiometric(
@@ -111,36 +113,36 @@ export async function authenticateWithBiometric(
 ): Promise<boolean> {
   const challenge = generateChallenge();
 
+  // Decode stored credential ID into plain ArrayBuffer
+  const credIdBytes = base64urlToUint8Array(opts.credentialId);
+  const credIdBuf = new ArrayBuffer(credIdBytes.length);
+  new Uint8Array(credIdBuf).set(credIdBytes);
+
   try {
     const credential = await navigator.credentials.get({
       publicKey: {
-        challenge,
+        challenge,                        // plain ArrayBuffer ✓
         rpId: RP_ID,
         allowCredentials: [
           {
-            id: base64urlToUint8Array(opts.credentialId),
+            id: credIdBuf,               // plain ArrayBuffer ✓
             type: 'public-key',
-            transports: ['internal'], // device authenticator
+            transports: ['internal'],
           },
         ],
         userVerification: 'required',
         timeout: 60000,
       },
-    }) as PublicKeyCredential;
+    }) as PublicKeyCredential | null;
 
-    // If we got a credential back, authentication succeeded
     return !!credential;
   } catch (err) {
-    // NotAllowedError = user cancelled or timed out
-    // SecurityError = wrong domain
     console.error('Biometric auth error:', err);
     return false;
   }
 }
 
 // ── SESSION CACHE ────────────────────────────────────────────
-// After biometric success, cache a timestamp so user isn't
-// asked again for a configurable period (default 8 hours)
 const SESSION_KEY = 'ff_biometric_session';
 const SESSION_HOURS = 8;
 
