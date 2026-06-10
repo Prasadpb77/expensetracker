@@ -1,8 +1,10 @@
-// FamilyFinance Service Worker
-const CACHE_NAME = 'family-finance-v1';
+const CACHE_NAME = 'family-finance-v2';
 const STATIC_ASSETS = [
   '/expensetracker/',
   '/expensetracker/index.html',
+  '/expensetracker/manifest.json',
+  '/expensetracker/icons/icon-192.png',
+  '/expensetracker/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -22,10 +24,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // For navigation requests (page loads), use network-first then cache
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -34,12 +34,14 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match('/expensetracker/') || caches.match('/expensetracker/index.html'))
+        .catch(() =>
+          caches.match('/expensetracker/') ||
+          caches.match('/expensetracker/index.html')
+        )
     );
     return;
   }
 
-  // For other assets, use cache-first
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;

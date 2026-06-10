@@ -6,7 +6,7 @@
     <meta name="description" content="FamilyFinance - Personal expense management for couples" />
 
     <!-- PWA -->
-    <link rel="manifest" href="/expense-tracker/manifest.json" />
+    <link rel="manifest" href="/expensetracker/manifest.json" />
     <meta name="theme-color" content="#0284c7" />
     <meta name="mobile-web-app-capable" content="yes" />
 
@@ -14,13 +14,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FamilyFinance" />
-    <link rel="apple-touch-icon" href="/expense-tracker/icons/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/expense-tracker/icons/icon-152.png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="/expense-tracker/icons/icon-144.png" />
+    <link rel="apple-touch-icon" href="/expensetracker/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/expensetracker/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/expensetracker/icons/icon-144.png" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/expense-tracker/icons/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/expense-tracker/icons/icon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/expensetracker/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="96x96"   href="/expensetracker/icons/icon-96.png" />
 
     <title>FamilyFinance</title>
 
@@ -51,9 +51,9 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/expense-tracker/sw.js')
+          navigator.serviceWorker.register('/expensetracker/sw.js')
             .then(function(reg) { console.log('SW registered:', reg.scope); })
-            .catch(function(err) { console.log('SW registration failed:', err); });
+            .catch(function(err) { console.log('SW failed:', err); });
         });
       }
     </script>

@@ -4,9 +4,8 @@
     <meta charset="utf-8">
     <title>FamilyFinance</title>
     <script type="text/javascript">
-      // GitHub Pages SPA redirect trick
-      // Converts 404 paths to query string so index.html can handle routing
-      var pathSegmentsToKeep = 1; // 1 = keep the repo name segment
+      // GitHub Pages SPA redirect — keeps 1 path segment (the repo name)
+      var pathSegmentsToKeep = 1;
       var l = window.location;
       l.replace(
         l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
