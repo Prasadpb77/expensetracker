@@ -2,8 +2,8 @@
   "name": "FamilyFinance",
   "short_name": "FamilyFinance",
   "description": "Personal expense management for couples",
-  "start_url": "/expense-tracker/",
-  "scope": "/expense-tracker/",
+  "start_url": "/expensetracker/",
+  "scope": "/expensetracker/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait-primary",
@@ -12,31 +12,31 @@
   "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "/expense-tracker/icons/icon-72.png",
+      "src": "/expensetracker/icons/icon-72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/expense-tracker/icons/icon-96.png",
+      "src": "/expensetracker/icons/icon-96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/expense-tracker/icons/icon-128.png",
+      "src": "/expensetracker/icons/icon-128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/expense-tracker/icons/icon-144.png",
+      "src": "/expensetracker/icons/icon-144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/expense-tracker/icons/icon-152.png",
+      "src": "/expensetracker/icons/icon-152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
@@ -48,13 +48,13 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/expense-tracker/icons/icon-384.png",
+      "src": "/expensetracker/icons/icon-384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/expense-tracker/icons/icon-512.png",
+      "src": "/expensetracker/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -62,13 +62,13 @@
   ],
   "screenshots": [
     {
-      "src": "/expense-tracker/icons/screenshot-wide.png",
+      "src": "/expensetracker/icons/screenshot-wide.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "/expense-tracker/icons/screenshot-narrow.png",
+      "src": "/expensetracker/icons/screenshot-narrow.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"
