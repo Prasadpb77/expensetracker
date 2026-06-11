@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, Receipt, PiggyBank,
   BarChart3, Settings, LogOut, Moon, Sun, Menu, X,
-  Wallet, Users, Target, RefreshCw,
+  Wallet, Users, Target, RefreshCw, Sparkles,
 } from 'lucide-react';
 import { cn, getInitials } from '@/utils';
 import { useAppStore } from '@/contexts/store';
@@ -18,6 +18,7 @@ const navigation = [
   { name: 'Budget',      href: '/budget',       icon: Wallet },
   { name: 'Recurring',   href: '/recurring',    icon: RefreshCw },
   { name: 'Reports',     href: '/reports',      icon: BarChart3 },
+  { name: 'Fin AI',      href: '/assistant',    icon: Sparkles },
   { name: 'Settings',    href: '/settings',     icon: Settings },
 ];
 
@@ -40,7 +41,6 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar — uses env(safe-area-inset-*) for iPhone notch/home bar */}
       <aside
         className={cn(
           'fixed left-0 top-0 z-30 flex flex-col bg-white dark:bg-surface-900',
@@ -49,14 +49,13 @@ export function Sidebar() {
           sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-16'
         )}
         style={{
-          // Full height including safe areas (iPhone notch + home indicator)
           height: '100vh',
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
           paddingLeft: 'env(safe-area-inset-left)',
         }}
       >
-        {/* Logo row */}
+        {/* Logo */}
         <div className={cn(
           'flex items-center h-14 px-4 border-b border-surface-100 dark:border-surface-800 flex-shrink-0',
           !sidebarOpen && 'lg:justify-center'
@@ -91,36 +90,46 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Nav — scrollable */}
+        {/* Nav */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
           {navigation.map(({ name, href, icon: Icon }) => (
             <NavLink
               key={href}
               to={href}
-              onClick={() => {
-                // Close sidebar on mobile after navigation
-                if (window.innerWidth < 1024) setSidebarOpen(false);
-              }}
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                   !sidebarOpen && 'lg:justify-center lg:px-0',
                   isActive
-                    ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300'
+                    ? href === '/assistant'
+                      ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/40 dark:to-purple-950/40 text-blue-700 dark:text-blue-300'
+                      : 'bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300'
                     : 'text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-200'
                 )
               }
               title={!sidebarOpen ? name : undefined}
             >
-              <Icon className="h-4 w-4 flex-shrink-0" />
-              {sidebarOpen && <span>{name}</span>}
+              {href === '/assistant'
+                ? <Icon className={cn('h-4 w-4 flex-shrink-0', !sidebarOpen && 'text-purple-500')} />
+                : <Icon className="h-4 w-4 flex-shrink-0" />
+              }
+              {sidebarOpen && (
+                <span className="flex items-center gap-2">
+                  {name}
+                  {href === '/assistant' && (
+                    <span style={{ fontSize: '0.6rem', padding: '1px 5px', borderRadius: 4, background: 'linear-gradient(135deg,#0284c7,#7c3aed)', color: 'white', fontWeight: 700, letterSpacing: '0.04em' }}>
+                      AI
+                    </span>
+                  )}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
 
         {/* Bottom controls */}
         <div className="border-t border-surface-100 dark:border-surface-800 p-2 space-y-0.5 flex-shrink-0">
-          {/* Dark mode */}
           <button
             onClick={toggleDarkMode}
             className={cn(
@@ -129,13 +138,10 @@ export function Sidebar() {
               !sidebarOpen && 'lg:justify-center'
             )}
           >
-            {isDarkMode
-              ? <Sun className="h-4 w-4 flex-shrink-0" />
-              : <Moon className="h-4 w-4 flex-shrink-0" />}
+            {isDarkMode ? <Sun className="h-4 w-4 flex-shrink-0" /> : <Moon className="h-4 w-4 flex-shrink-0" />}
             {sidebarOpen && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
 
-          {/* Sign out */}
           <button
             onClick={handleSignOut}
             className={cn(
@@ -148,7 +154,6 @@ export function Sidebar() {
             {sidebarOpen && <span>Sign Out</span>}
           </button>
 
-          {/* User profile */}
           {profile && (
             <div className={cn(
               'flex items-center gap-3 px-3 py-2 mt-1 rounded-lg bg-surface-50 dark:bg-surface-800',
@@ -173,9 +178,8 @@ export function Sidebar() {
   );
 }
 
-export function TopBar({ title }: { title?: string }) {
+export function TopBar() {
   const { setSidebarOpen, sidebarOpen } = useAppStore();
-
   return (
     <header
       className="flex items-center gap-4 px-4 sm:px-6 bg-white dark:bg-surface-900 border-b border-surface-100 dark:border-surface-800 flex-shrink-0"
@@ -185,19 +189,9 @@ export function TopBar({ title }: { title?: string }) {
         paddingRight: 'env(safe-area-inset-right)',
       }}
     >
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="flex-shrink-0"
-      >
+      <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="flex-shrink-0">
         <Menu className="h-5 w-5" />
       </Button>
-      {title && (
-        <h1 className="font-display font-semibold text-surface-900 dark:text-surface-100 text-lg">
-          {title}
-        </h1>
-      )}
     </header>
   );
 }
