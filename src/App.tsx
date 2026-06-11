@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute, PublicRoute } from '@/components/layout/ProtectedRoute';
@@ -14,6 +13,7 @@ import { ReportsPage } from '@/pages/reports/ReportsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { InvestmentsPage } from '@/pages/investments/InvestmentsPage';
 import { GoalsPage } from '@/pages/goals/GoalsPage';
+import { RecurringPage } from '@/pages/recurring/RecurringPage';
 
 export function App() {
   return (
@@ -30,20 +30,20 @@ export function App() {
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/income" element={<IncomePage />} />
-              <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/dashboard"   element={<DashboardPage />} />
+              <Route path="/income"      element={<IncomePage />} />
+              <Route path="/expenses"    element={<ExpensesPage />} />
               <Route path="/investments" element={<InvestmentsPage />} />
-              <Route path="/goals" element={<GoalsPage />} />
-              <Route path="/budget" element={<BudgetPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/goals"       element={<GoalsPage />} />
+              <Route path="/budget"      element={<BudgetPage />} />
+              <Route path="/recurring"   element={<RecurringPage />} />
+              <Route path="/reports"     element={<ReportsPage />} />
+              <Route path="/settings"    element={<SettingsPage />} />
             </Route>
           </Route>
 
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/"  element={<Navigate to="/dashboard" replace />} />
+          <Route path="*"  element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

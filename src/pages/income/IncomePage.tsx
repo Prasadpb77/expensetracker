@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Input, Select } from '@/components/ui/Input';
 import { IncomeForm } from '@/components/forms/IncomeForm';
 import { TableSkeleton } from '@/components/ui/Skeleton';
-import { StatCard } from '@/components/ui/StatCard';
 import { formatCurrency, formatDate, getCurrentMonth } from '@/utils';
 import { INCOME_SOURCES } from '@/types';
 import type { Income, IncomeFormData } from '@/types';
@@ -33,23 +32,22 @@ export function IncomePage() {
   const [filterUser, setFilterUser] = useState('');
 
   const loadIncomes = useCallback(async () => {
-    if (!profile?.family_id) return;
+    if (!profile?.family_id) { setLoading(false); return; }
+    setLoading(true);
     try {
       const data = await incomeService.getAll(profile.family_id, {
         source: filterSource || undefined,
         userId: filterUser || undefined,
       });
       setIncomes(data);
-    } catch {
-      addToast({ type: 'error', title: 'Failed to load income' });
+    } catch (e) {
+      addToast({ type: 'error', title: 'Failed to load income', message: String(e) });
     } finally {
       setLoading(false);
     }
   }, [profile?.family_id, filterSource, filterUser, addToast]);
 
-  useEffect(() => {
-    loadIncomes();
-  }, [loadIncomes]);
+  useEffect(() => { loadIncomes(); }, [loadIncomes]);
 
   const handleAdd = async (data: IncomeFormData) => {
     if (!profile?.family_id || !user) return;
@@ -58,12 +56,10 @@ export function IncomePage() {
       await incomeService.create(profile.family_id, user.id, data);
       addToast({ type: 'success', title: 'Income added successfully' });
       setShowAddModal(false);
-      loadIncomes();
+      await loadIncomes();
     } catch (e) {
-      addToast({ type: 'error', title: 'Failed to add income', message: String(e) });
-    } finally {
-      setSubmitting(false);
-    }
+      addToast({ type: 'error', title: 'Failed to add income', message: e instanceof Error ? e.message : String(e) });
+    } finally { setSubmitting(false); }
   };
 
   const handleEdit = async (data: IncomeFormData) => {
@@ -73,12 +69,10 @@ export function IncomePage() {
       await incomeService.update(editingIncome.id, data);
       addToast({ type: 'success', title: 'Income updated' });
       setEditingIncome(null);
-      loadIncomes();
+      await loadIncomes();
     } catch (e) {
-      addToast({ type: 'error', title: 'Failed to update income', message: String(e) });
-    } finally {
-      setSubmitting(false);
-    }
+      addToast({ type: 'error', title: 'Failed to update income', message: e instanceof Error ? e.message : String(e) });
+    } finally { setSubmitting(false); }
   };
 
   const handleDelete = async () => {
@@ -88,12 +82,10 @@ export function IncomePage() {
       await incomeService.delete(deletingId);
       addToast({ type: 'success', title: 'Income deleted' });
       setDeletingId(null);
-      loadIncomes();
-    } catch {
-      addToast({ type: 'error', title: 'Failed to delete income' });
-    } finally {
-      setDeleting(false);
-    }
+      await loadIncomes();
+    } catch (e) {
+      addToast({ type: 'error', title: 'Failed to delete income', message: String(e) });
+    } finally { setDeleting(false); }
   };
 
   const filtered = incomes.filter(i => {
@@ -109,13 +101,13 @@ export function IncomePage() {
     .filter(i => i.date >= currentMonth.from && i.date <= currentMonth.to)
     .reduce((s, i) => s + Number(i.amount), 0);
   const totalAll = incomes.reduce((s, i) => s + Number(i.amount), 0);
-  const avgMonthly = incomes.length > 0 ? totalAll / Math.max(1, new Set(incomes.map(i => i.date.slice(0, 7))).size) : 0;
+  const monthCount = new Set(incomes.map(i => i.date.slice(0, 7))).size;
+  const avgMonthly = monthCount > 0 ? totalAll / monthCount : 0;
 
   const sourceOptions = [
     { value: '', label: 'All Sources' },
     ...INCOME_SOURCES.map(s => ({ value: s, label: s })),
   ];
-
   const memberOptions = [
     { value: '', label: 'All Members' },
     ...familyMembers.map(m => ({ value: m.id, label: m.display_name })),
@@ -123,7 +115,6 @@ export function IncomePage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-surface-900 dark:text-surface-100">Income</h2>
@@ -136,35 +127,28 @@ export function IncomePage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <StatCard title="This Month" amount={currentMonthTotal} icon={<TrendingUp />} variant="income" compact />
-        <StatCard title="Total (All Time)" amount={totalAll} icon={<TrendingUp />} variant="income" compact />
-        <StatCard title="Monthly Average" amount={avgMonthly} icon={<TrendingUp />} variant="income" compact />
+        {[
+          { label: 'This Month', amount: currentMonthTotal },
+          { label: 'Total (All Time)', amount: totalAll },
+          { label: 'Monthly Average', amount: avgMonthly },
+        ].map(s => (
+          <div key={s.label} style={{ background: '#f0fdf4', borderRadius: 12, border: '1px solid #bbf7d0', padding: '1rem' }}>
+            <p style={{ fontSize: '0.75rem', color: '#15803d', margin: '0 0 0.4rem' }}>{s.label}</p>
+            <p style={{ fontSize: '1.2rem', fontWeight: 800, color: '#16a34a', margin: 0 }}>{formatCurrency(s.amount)}</p>
+          </div>
+        ))}
       </div>
 
       {/* Filters */}
       <Card>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <Input
-              placeholder="Search income..."
-              leftIcon={<Search className="h-4 w-4" />}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+            <Input placeholder="Search income..." leftIcon={<Search className="h-4 w-4" />}
+              value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <Select
-            options={sourceOptions}
-            value={filterSource}
-            onChange={e => setFilterSource(e.target.value)}
-            className="sm:w-40"
-          />
+          <Select options={sourceOptions} value={filterSource} onChange={e => setFilterSource(e.target.value)} className="sm:w-40" />
           {familyMembers.length > 1 && (
-            <Select
-              options={memberOptions}
-              value={filterUser}
-              onChange={e => setFilterUser(e.target.value)}
-              className="sm:w-40"
-            />
+            <Select options={memberOptions} value={filterUser} onChange={e => setFilterUser(e.target.value)} className="sm:w-40" />
           )}
         </div>
       </Card>
@@ -198,9 +182,7 @@ export function IncomePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-surface-900 dark:text-surface-100">
-                        {income.source}
-                      </p>
+                      <p className="text-sm font-semibold text-surface-900 dark:text-surface-100">{income.source}</p>
                       {income.description && (
                         <span className="text-sm text-surface-500 truncate">— {income.description}</span>
                       )}
@@ -220,19 +202,11 @@ export function IncomePage() {
                     </p>
                     {isOwn && (
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingIncome(income)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => setEditingIncome(income)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingId(income.id)}
-                          className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => setDeletingId(income.id)}
+                          className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -245,32 +219,16 @@ export function IncomePage() {
         )}
       </Card>
 
-      {/* Add Modal */}
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add Income" size="md">
         <IncomeForm onSubmit={handleAdd} onCancel={() => setShowAddModal(false)} loading={submitting} />
       </Modal>
-
-      {/* Edit Modal */}
       <Modal isOpen={!!editingIncome} onClose={() => setEditingIncome(null)} title="Edit Income" size="md">
         {editingIncome && (
-          <IncomeForm
-            defaultValues={editingIncome}
-            onSubmit={handleEdit}
-            onCancel={() => setEditingIncome(null)}
-            loading={submitting}
-          />
+          <IncomeForm defaultValues={editingIncome} onSubmit={handleEdit} onCancel={() => setEditingIncome(null)} loading={submitting} />
         )}
       </Modal>
-
-      {/* Delete Confirm */}
-      <ConfirmDialog
-        isOpen={!!deletingId}
-        onClose={() => setDeletingId(null)}
-        onConfirm={handleDelete}
-        title="Delete Income"
-        description="Are you sure you want to delete this income record? This action cannot be undone."
-        loading={deleting}
-      />
+      <ConfirmDialog isOpen={!!deletingId} onClose={() => setDeletingId(null)} onConfirm={handleDelete}
+        title="Delete Income" description="Are you sure you want to delete this income record?" loading={deleting} />
     </div>
   );
 }

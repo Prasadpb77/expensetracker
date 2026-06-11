@@ -7,6 +7,7 @@ import { Wallet, Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { biometricService } from '@/services/biometric.service';
 import { useAppStore } from '@/contexts/store';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   isBiometricAvailable,
   authenticateWithBiometric,
@@ -28,45 +29,73 @@ const errorCls = 'text-xs text-red-600 mt-1';
 export function LoginPage() {
   const navigate = useNavigate();
   const { addToast } = useAppStore();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [savedCredential, setSavedCredential] = useState<{ credentialId: string; email: string } | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-  });
+  // If already authenticated (Supabase session exists), go straight to dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   useEffect(() => {
-    // Check if biometric is available on this device
     isBiometricAvailable().then(available => {
       if (available) {
         setBiometricAvailable(true);
         const local = biometricService.getLocalCredential();
         setSavedCredential(local);
-
-        // If there's an active biometric session, skip to dashboard
-        if (local && hasBiometricSession()) {
-          navigate('/dashboard');
-        }
       }
     });
-  }, [navigate]);
+  }, []);
+
+  // Auto-trigger biometric if session is cached and credential exists
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated && savedCredential && biometricAvailable) {
+      if (hasBiometricSession()) {
+        // Session cache still valid — restore without biometric prompt
+        // Just need to check if Supabase session is still active
+        authService.getSession().then(session => {
+          if (session) {
+            navigate('/dashboard', { replace: true });
+          }
+        });
+      }
+    }
+  }, [authLoading, isAuthenticated, savedCredential, biometricAvailable, navigate]);
 
   const handleBiometricLogin = async () => {
     if (!savedCredential) return;
     setBiometricLoading(true);
     try {
-      const success = await authenticateWithBiometric({ credentialId: savedCredential.credentialId });
+      // Step 1: Verify biometric (proves user identity on device)
+      const success = await authenticateWithBiometric({
+        credentialId: savedCredential.credentialId,
+      });
       if (!success) {
         addToast({ type: 'error', title: 'Biometric failed', message: 'Please use password to sign in.' });
         return;
       }
-      // Biometric verified — set session cache so we skip next time
+
+      // Step 2: Check if Supabase session still exists (it persists in localStorage)
+      const session = await authService.getSession();
+      if (!session) {
+        addToast({
+          type: 'warning',
+          title: 'Session expired',
+          message: 'Please sign in with your password once to restore your session.',
+        });
+        return;
+      }
+
+      // Step 3: Session valid + biometric passed = allow access
       setBiometricSession();
       await biometricService.updateLastUsed(savedCredential.credentialId);
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       addToast({ type: 'error', title: 'Biometric error', message: 'Please use password instead.' });
       console.error(err);
@@ -79,7 +108,8 @@ export function LoginPage() {
     setLoading(true);
     try {
       await authService.signIn(data);
-      navigate('/dashboard');
+      // AuthContext will pick up the session change and update isAuthenticated
+      // The useEffect above will then navigate to /dashboard
     } catch (error) {
       addToast({
         type: 'error',
@@ -91,11 +121,28 @@ export function LoginPage() {
     }
   };
 
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  // Show loading while auth state is being determined
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, background: '#0284c7', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <Wallet style={{ width: 24, height: 24, color: 'white' }} />
+          </div>
+          <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
       <div style={{ width: '100%', maxWidth: '440px' }}>
 
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', background: '#0284c7', borderRadius: '16px', marginBottom: '1rem' }}>
             <Wallet style={{ width: '28px', height: '28px', color: 'white' }} />
@@ -109,7 +156,7 @@ export function LoginPage() {
             Welcome back
           </h2>
 
-          {/* Biometric button — show if device supports it and credential saved */}
+          {/* Biometric button */}
           {biometricAvailable && savedCredential && (
             <div style={{ marginBottom: '1.5rem' }}>
               <button
@@ -117,48 +164,25 @@ export function LoginPage() {
                 onClick={handleBiometricLogin}
                 disabled={biometricLoading}
                 style={{
-                  width: '100%',
-                  padding: '0.875rem',
-                  background: biometricLoading ? '#f1f5f9' : 'linear-gradient(135deg, #0f172a, #1e293b)',
+                  width: '100%', padding: '0.875rem',
+                  background: biometricLoading ? '#f1f5f9' : '#0f172a',
                   color: biometricLoading ? '#94a3b8' : 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: '700',
+                  border: 'none', borderRadius: '12px',
+                  fontSize: '1rem', fontWeight: '700',
                   cursor: biometricLoading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.75rem',
-                  transition: 'all 0.2s',
-                  boxShadow: biometricLoading ? 'none' : '0 4px 12px rgba(15,23,42,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
                 }}
               >
-                {biometricLoading ? (
-                  <>
-                    <span style={{ fontSize: '1.4rem' }}>⏳</span>
-                    Verifying...
-                  </>
-                ) : (
-                  <>
-                    <span style={{ fontSize: '1.6rem' }}>
-                      {/iPhone|iPad|Mac/.test(navigator.userAgent) ? '󰦬' : '🔐'}
-                    </span>
-                    <span>
-                      {/iPhone|iPad/.test(navigator.userAgent)
-                        ? 'Sign in with Face ID / Touch ID'
-                        : /Mac/.test(navigator.userAgent)
-                        ? 'Sign in with Touch ID'
-                        : 'Sign in with Fingerprint'}
-                    </span>
-                  </>
+                <span style={{ fontSize: '1.4rem' }}>🔐</span>
+                {biometricLoading ? 'Verifying...' : (
+                  /iPhone|iPad/.test(navigator.userAgent) ? 'Sign in with Face ID / Touch ID'
+                  : /Mac/.test(navigator.userAgent) ? 'Sign in with Touch ID'
+                  : 'Sign in with Fingerprint'
                 )}
               </button>
-
               <p style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', marginTop: '0.5rem' }}>
                 {savedCredential.email}
               </p>
-
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.25rem 0' }}>
                 <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>or use password</span>

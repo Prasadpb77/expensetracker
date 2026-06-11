@@ -163,7 +163,7 @@ export function BudgetPage() {
       await budgetService.create(profile.family_id, user.id, data);
       addToast({ type: 'success', title: 'Budget set successfully' });
       setShowAddModal(false);
-      load();
+      await load();
     } catch (e) {
       addToast({ type: 'error', title: 'Failed to set budget', message: String(e) });
     } finally {
@@ -178,7 +178,7 @@ export function BudgetPage() {
       await budgetService.update(editingBudget.id, data);
       addToast({ type: 'success', title: 'Budget updated' });
       setEditingBudget(null);
-      load();
+      await load();
     } catch (e) {
       addToast({ type: 'error', title: 'Failed to update budget', message: String(e) });
     } finally {
@@ -193,7 +193,7 @@ export function BudgetPage() {
       await budgetService.delete(deletingId);
       addToast({ type: 'success', title: 'Budget deleted' });
       setDeletingId(null);
-      load();
+      await load();
     } catch {
       addToast({ type: 'error', title: 'Failed to delete budget' });
     } finally {

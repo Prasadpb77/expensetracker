@@ -1,20 +1,8 @@
-
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  TrendingUp,
-  Receipt,
-  PiggyBank,
-  BarChart3,
-  Settings,
-  LogOut,
-  Moon,
-  Sun,
-  Menu,
-  X,
-  Wallet,
-  Users,
-  Target,
+  LayoutDashboard, TrendingUp, Receipt, PiggyBank,
+  BarChart3, Settings, LogOut, Moon, Sun, Menu, X,
+  Wallet, Users, Target, RefreshCw,
 } from 'lucide-react';
 import { cn, getInitials } from '@/utils';
 import { useAppStore } from '@/contexts/store';
@@ -22,14 +10,15 @@ import { authService } from '@/services/auth.service';
 import { Button } from '@/components/ui/Button';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Income', href: '/income', icon: TrendingUp },
-  { name: 'Expenses', href: '/expenses', icon: Receipt },
-  { name: 'Investments', href: '/investments', icon: PiggyBank },
-  { name: 'Goals', href: '/goals', icon: Target },
-  { name: 'Budget', href: '/budget', icon: Wallet },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard',   href: '/dashboard',   icon: LayoutDashboard },
+  { name: 'Income',      href: '/income',       icon: TrendingUp },
+  { name: 'Expenses',    href: '/expenses',     icon: Receipt },
+  { name: 'Investments', href: '/investments',  icon: PiggyBank },
+  { name: 'Goals',       href: '/goals',        icon: Target },
+  { name: 'Budget',      href: '/budget',       icon: Wallet },
+  { name: 'Recurring',   href: '/recurring',    icon: RefreshCw },
+  { name: 'Reports',     href: '/reports',      icon: BarChart3 },
+  { name: 'Settings',    href: '/settings',     icon: Settings },
 ];
 
 export function Sidebar() {
@@ -51,18 +40,25 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — uses env(safe-area-inset-*) for iPhone notch/home bar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-30 h-screen flex flex-col bg-white dark:bg-surface-900',
+          'fixed left-0 top-0 z-30 flex flex-col bg-white dark:bg-surface-900',
           'border-r border-surface-100 dark:border-surface-800 transition-all duration-300',
           'shadow-glass lg:shadow-none',
           sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-16'
         )}
+        style={{
+          // Full height including safe areas (iPhone notch + home indicator)
+          height: '100vh',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+        }}
       >
-        {/* Logo */}
+        {/* Logo row */}
         <div className={cn(
-          'flex items-center h-16 px-4 border-b border-surface-100 dark:border-surface-800',
+          'flex items-center h-14 px-4 border-b border-surface-100 dark:border-surface-800 flex-shrink-0',
           !sidebarOpen && 'lg:justify-center'
         )}>
           <div className="flex items-center gap-3 min-w-0">
@@ -76,18 +72,18 @@ export function Sidebar() {
             )}
           </div>
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            onClick={() => setSidebarOpen(false)}
             className="ml-auto p-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Family info */}
+        {/* Family badge */}
         {sidebarOpen && family && (
-          <div className="mx-3 mt-3 px-3 py-2.5 rounded-lg bg-brand-50 dark:bg-brand-950/30 border border-brand-100 dark:border-brand-900/50">
+          <div className="mx-3 mt-3 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/30 border border-brand-100 dark:border-brand-900/50 flex-shrink-0">
             <div className="flex items-center gap-2">
-              <Users className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400 flex-shrink-0" />
+              <Users className="h-3 w-3 text-brand-600 dark:text-brand-400 flex-shrink-0" />
               <span className="text-xs font-medium text-brand-700 dark:text-brand-300 truncate">
                 {family.name}
               </span>
@@ -95,12 +91,16 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {/* Nav — scrollable */}
+        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
           {navigation.map(({ name, href, icon: Icon }) => (
             <NavLink
               key={href}
               to={href}
+              onClick={() => {
+                // Close sidebar on mobile after navigation
+                if (window.innerWidth < 1024) setSidebarOpen(false);
+              }}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
@@ -118,9 +118,9 @@ export function Sidebar() {
           ))}
         </nav>
 
-        {/* Bottom section */}
-        <div className="border-t border-surface-100 dark:border-surface-800 p-3 space-y-1">
-          {/* Dark mode toggle */}
+        {/* Bottom controls */}
+        <div className="border-t border-surface-100 dark:border-surface-800 p-2 space-y-0.5 flex-shrink-0">
+          {/* Dark mode */}
           <button
             onClick={toggleDarkMode}
             className={cn(
@@ -129,11 +129,9 @@ export function Sidebar() {
               !sidebarOpen && 'lg:justify-center'
             )}
           >
-            {isDarkMode ? (
-              <Sun className="h-4 w-4 flex-shrink-0" />
-            ) : (
-              <Moon className="h-4 w-4 flex-shrink-0" />
-            )}
+            {isDarkMode
+              ? <Sun className="h-4 w-4 flex-shrink-0" />
+              : <Moon className="h-4 w-4 flex-shrink-0" />}
             {sidebarOpen && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
 
@@ -153,7 +151,7 @@ export function Sidebar() {
           {/* User profile */}
           {profile && (
             <div className={cn(
-              'flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg bg-surface-50 dark:bg-surface-800',
+              'flex items-center gap-3 px-3 py-2 mt-1 rounded-lg bg-surface-50 dark:bg-surface-800',
               !sidebarOpen && 'lg:justify-center'
             )}>
               <div className="flex-shrink-0 h-7 w-7 rounded-full bg-brand-600 flex items-center justify-center text-xs font-bold text-white">
@@ -179,7 +177,14 @@ export function TopBar({ title }: { title?: string }) {
   const { setSidebarOpen, sidebarOpen } = useAppStore();
 
   return (
-    <header className="h-16 flex items-center gap-4 px-4 sm:px-6 bg-white dark:bg-surface-900 border-b border-surface-100 dark:border-surface-800">
+    <header
+      className="flex items-center gap-4 px-4 sm:px-6 bg-white dark:bg-surface-900 border-b border-surface-100 dark:border-surface-800 flex-shrink-0"
+      style={{
+        height: 'calc(3.5rem + env(safe-area-inset-top))',
+        paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+    >
       <Button
         variant="ghost"
         size="icon"

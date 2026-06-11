@@ -6,6 +6,11 @@
   :root {
     --color-surface-200: #e2e8f0;
     --color-surface-500: #64748b;
+    /* iOS safe area support */
+    --sat: env(safe-area-inset-top);
+    --sar: env(safe-area-inset-right);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
   }
 
   .dark {
@@ -13,8 +18,12 @@
     --color-surface-500: #94a3b8;
   }
 
-  * {
-    @apply border-surface-200 dark:border-surface-700;
+  * { @apply border-surface-200 dark:border-surface-700; }
+
+  html {
+    /* Prevent iOS bounce/overscroll */
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -22,83 +31,76 @@
     @apply bg-surface-50 dark:bg-surface-950;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
-  }
+  h1, h2, h3, h4, h5, h6 { @apply font-display; }
 }
 
 @layer components {
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { @apply bg-surface-100 dark:bg-surface-800; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-300 dark:bg-surface-600 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-surface-400 dark:bg-surface-500; }
+
+  /* iOS momentum scrolling for scrollable areas */
+  .scrollable {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
   }
 
-  ::-webkit-scrollbar-track {
-    @apply bg-surface-100 dark:bg-surface-800;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-surface-300 dark:bg-surface-600 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-surface-400 dark:bg-surface-500;
-  }
-
-  /* Focus ring */
-  .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2;
-  }
-
-  /* Surface hover for dark mode table rows */
   .dark .hover\:bg-surface-750:hover {
     background-color: rgb(30 41 59 / 0.8);
   }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  /* Gradient text */
+  .text-balance { text-wrap: balance; }
   .gradient-text {
     @apply bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent;
   }
+  /* Safe area padding utilities */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
 }
 
-/* Recharts dark mode overrides */
-.dark .recharts-text {
-  fill: #94a3b8;
-}
+/* Recharts dark mode */
+.dark .recharts-text { fill: #94a3b8; }
+.dark .recharts-cartesian-grid line { stroke: #334155; }
 
-.dark .recharts-cartesian-grid line {
-  stroke: #334155;
-}
-
-/* Input date picker fix */
+/* Date picker */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0.5;
-  cursor: pointer;
+  opacity: 0.5; cursor: pointer;
 }
-
-.dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-}
+.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 
 /* Range input */
 input[type="range"] {
   @apply h-2 rounded-full cursor-pointer appearance-none bg-surface-200 dark:bg-surface-700;
 }
-
 input[type="range"]::-webkit-slider-thumb {
-  @apply appearance-none w-4 h-4 rounded-full bg-brand-600 cursor-pointer shadow-sm;
+  @apply appearance-none w-5 h-5 rounded-full bg-brand-600 cursor-pointer shadow-sm;
 }
 
 /* Checkbox */
 input[type="checkbox"] {
-  @apply rounded border-surface-300 dark:border-surface-600 text-brand-600;
+  @apply rounded border-surface-300 dark:border-surface-600;
+  accent-color: #0284c7;
+}
+
+/* iOS tap highlight */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Prevent zoom on iOS input focus */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
