@@ -1,3 +1,4 @@
+import { useStableToast } from '@/hooks/useStableToast';
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, Target, TrendingUp, CheckCircle, Calendar, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
@@ -384,7 +385,8 @@ function HistoryModal({
 
 // ── Main GoalsPage ─────────────────────────────────────────────────────────────
 export function GoalsPage() {
-  const { profile, addToast } = useAppStore();
+  const { profile } = useAppStore();
+  const addToast = useStableToast();
   const { user } = useAuth();
 
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -406,7 +408,7 @@ export function GoalsPage() {
       setGoals(data);
     } catch { addToast({ type: 'error', title: 'Failed to load goals' }); }
     finally { setLoading(false); }
-  }, [profile?.family_id, addToast]);
+  }, [profile?.family_id]);
 
   useEffect(() => { load(); }, [load]);
 

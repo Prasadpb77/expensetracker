@@ -1,3 +1,4 @@
+import { useStableToast } from '@/hooks/useStableToast';
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Search, Filter, Pencil, Trash2, TrendingUp } from 'lucide-react';
 import { useAppStore } from '@/contexts/store';
@@ -15,7 +16,8 @@ import { INCOME_SOURCES } from '@/types';
 import type { Income, IncomeFormData } from '@/types';
 
 export function IncomePage() {
-  const { profile, familyMembers, addToast } = useAppStore();
+  const { profile, familyMembers } = useAppStore();
+  const addToast = useStableToast();
   const { user } = useAuth();
 
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -45,7 +47,7 @@ export function IncomePage() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.family_id, filterSource, filterUser, addToast]);
+  }, [profile?.family_id, filterSource, filterUser]);
 
   useEffect(() => { loadIncomes(); }, [loadIncomes]);
 

@@ -1,3 +1,4 @@
+import { useStableToast } from '@/hooks/useStableToast';
 import { useEffect, useState, useCallback } from 'react';
 import { TrendingUp, Download, BarChart3, PiggyBank, Calendar } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -55,7 +56,8 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function InvestmentsPage() {
-  const { profile, familyMembers, addToast } = useAppStore();
+  const { profile, familyMembers } = useAppStore();
+  const addToast = useStableToast();
 
   const [period, setPeriod] = useState<Period>('12m');
   const [customFrom, setCustomFrom] = useState(format(subMonths(new Date(), 12), 'yyyy-MM-dd'));
@@ -122,7 +124,7 @@ export function InvestmentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.family_id, getDateRange, filterUser, addToast]);
+  }, [profile?.family_id, getDateRange, filterUser]);
 
   useEffect(() => { load(); }, [load]);
 

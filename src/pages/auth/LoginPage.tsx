@@ -11,7 +11,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   isBiometricAvailable,
   authenticateWithBiometric,
-  hasBiometricSession,
   setBiometricSession,
 } from '@/lib/webauthn';
 
@@ -29,14 +28,14 @@ const errorCls = 'text-xs text-red-600 mt-1';
 export function LoginPage() {
   const navigate = useNavigate();
   const { addToast } = useAppStore();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, refreshSession } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [savedCredential, setSavedCredential] = useState<{ credentialId: string; email: string } | null>(null);
 
-  // If already authenticated (Supabase session exists), go straight to dashboard
+  // Already logged in → go to dashboard
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       navigate('/dashboard', { replace: true });
@@ -47,69 +46,60 @@ export function LoginPage() {
     isBiometricAvailable().then(available => {
       if (available) {
         setBiometricAvailable(true);
-        const local = biometricService.getLocalCredential();
-        setSavedCredential(local);
+        setSavedCredential(biometricService.getLocalCredential());
       }
     });
   }, []);
-
-  // Auto-trigger biometric if session is cached and credential exists
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated && savedCredential && biometricAvailable) {
-      if (hasBiometricSession()) {
-        // Session cache still valid — restore without biometric prompt
-        // Just need to check if Supabase session is still active
-        authService.getSession().then(session => {
-          if (session) {
-            navigate('/dashboard', { replace: true });
-          }
-        });
-      }
-    }
-  }, [authLoading, isAuthenticated, savedCredential, biometricAvailable, navigate]);
 
   const handleBiometricLogin = async () => {
     if (!savedCredential) return;
     setBiometricLoading(true);
     try {
-      // Step 1: Verify biometric (proves user identity on device)
+      // Step 1: Verify biometric on device
       const success = await authenticateWithBiometric({
         credentialId: savedCredential.credentialId,
       });
       if (!success) {
-        addToast({ type: 'error', title: 'Biometric failed', message: 'Please use password to sign in.' });
+        addToast({ type: 'error', title: 'Biometric verification failed', message: 'Please use your password.' });
         return;
       }
 
-      // Step 2: Check if Supabase session still exists (it persists in localStorage)
-      const session = await authService.getSession();
-      if (!session) {
+      // Step 2: Force AuthContext to load the persisted Supabase session
+      // This fires onAuthStateChange which sets isAuthenticated = true
+      const sessionOk = await refreshSession();
+      if (!sessionOk) {
         addToast({
           type: 'warning',
           title: 'Session expired',
-          message: 'Please sign in with your password once to restore your session.',
+          message: 'Please sign in with your password once to renew your session.',
         });
         return;
       }
 
-      // Step 3: Session valid + biometric passed = allow access
+      // Step 3: All good — cache biometric session and navigate
       setBiometricSession();
       await biometricService.updateLastUsed(savedCredential.credentialId);
+      // navigate is handled by the isAuthenticated useEffect above
+      // but also call it directly as a fallback
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      addToast({ type: 'error', title: 'Biometric error', message: 'Please use password instead.' });
-      console.error(err);
+      console.error('Biometric error:', err);
+      addToast({ type: 'error', title: 'Biometric error', message: 'Please use your password.' });
     } finally {
       setBiometricLoading(false);
     }
   };
 
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  });
+
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
       await authService.signIn(data);
-      // AuthContext will pick up the session change and update isAuthenticated
-      // The useEffect above will then navigate to /dashboard
+      // onAuthStateChange in AuthContext will fire → isAuthenticated becomes true
+      // → useEffect above navigates to /dashboard
     } catch (error) {
       addToast({
         type: 'error',
@@ -121,17 +111,12 @@ export function LoginPage() {
     }
   };
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  // Show loading while auth state is being determined
   if (authLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 48, height: 48, background: '#0284c7', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-            <Wallet style={{ width: 24, height: 24, color: 'white' }} />
+          <div style={{ width: 52, height: 52, background: '#0284c7', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <Wallet style={{ width: 26, height: 26, color: 'white' }} />
           </div>
           <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Loading...</p>
         </div>
@@ -147,12 +132,12 @@ export function LoginPage() {
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', background: '#0284c7', borderRadius: '16px', marginBottom: '1rem' }}>
             <Wallet style={{ width: '28px', height: '28px', color: 'white' }} />
           </div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>FamilyFinance</h1>
-          <p style={{ color: '#64748b', marginTop: '4px', fontSize: '0.875rem' }}>Manage your family finances together</p>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>FamilyFinance</h1>
+          <p style={{ color: '#64748b', marginTop: 4, fontSize: '0.875rem' }}>Manage your family finances together</p>
         </div>
 
-        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#0f172a', marginTop: 0, marginBottom: '1.5rem' }}>
+        <div style={{ background: 'white', borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginTop: 0, marginBottom: '1.5rem' }}>
             Welcome back
           </h2>
 
@@ -167,25 +152,27 @@ export function LoginPage() {
                   width: '100%', padding: '0.875rem',
                   background: biometricLoading ? '#f1f5f9' : '#0f172a',
                   color: biometricLoading ? '#94a3b8' : 'white',
-                  border: 'none', borderRadius: '12px',
-                  fontSize: '1rem', fontWeight: '700',
+                  border: 'none', borderRadius: 12,
+                  fontSize: '1rem', fontWeight: 700,
                   cursor: biometricLoading ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                  boxShadow: biometricLoading ? 'none' : '0 4px 12px rgba(15,23,42,0.25)',
+                  transition: 'all 0.2s',
                 }}
               >
                 <span style={{ fontSize: '1.4rem' }}>🔐</span>
                 {biometricLoading ? 'Verifying...' : (
                   /iPhone|iPad/.test(navigator.userAgent) ? 'Sign in with Face ID / Touch ID'
-                  : /Mac/.test(navigator.userAgent) ? 'Sign in with Touch ID'
-                  : 'Sign in with Fingerprint'
+                  : /Android/.test(navigator.userAgent) ? 'Sign in with Fingerprint'
+                  : 'Sign in with Touch ID'
                 )}
               </button>
-              <p style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center', marginTop: '0.5rem' }}>
+              <p style={{ fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', marginTop: '0.4rem' }}>
                 {savedCredential.email}
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.25rem 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.25rem 0 0.5rem' }}>
                 <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>or use password</span>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>or sign in with password</span>
                 <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
               </div>
             </div>
@@ -208,30 +195,28 @@ export function LoginPage() {
                   style={{ paddingRight: '2.5rem' }}
                   {...register('password')} />
                 <button type="button" onClick={() => setShowPassword(v => !v)}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}>
-                  {showPassword
-                    ? <EyeOff style={{ width: '16px', height: '16px' }} />
-                    : <Eye style={{ width: '16px', height: '16px' }} />}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}>
+                  {showPassword ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
                 </button>
               </div>
               {errors.password && <p className={errorCls}>{errors.password.message}</p>}
             </div>
 
             <div style={{ textAlign: 'right', marginBottom: '1.5rem' }}>
-              <Link to="/forgot-password" style={{ fontSize: '0.875rem', color: '#0284c7', textDecoration: 'none', fontWeight: '500' }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.875rem', color: '#0284c7', textDecoration: 'none', fontWeight: 500 }}>
                 Forgot password?
               </Link>
             </div>
 
             <button type="submit" disabled={loading}
-              style={{ width: '100%', padding: '0.75rem', background: loading ? '#94a3b8' : '#0284c7', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer' }}>
+              style={{ width: '100%', padding: '0.75rem', background: loading ? '#94a3b8' : '#0284c7', color: 'white', border: 'none', borderRadius: 8, fontSize: '1rem', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}>
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
           <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: '#64748b' }}>
             Don't have an account?{' '}
-            <Link to="/register" style={{ color: '#0284c7', fontWeight: '600', textDecoration: 'none' }}>
+            <Link to="/register" style={{ color: '#0284c7', fontWeight: 600, textDecoration: 'none' }}>
               Create account
             </Link>
           </div>

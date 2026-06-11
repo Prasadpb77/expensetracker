@@ -1,3 +1,4 @@
+import { useStableToast } from '@/hooks/useStableToast';
 import { useState, useCallback, useEffect } from 'react';
 import { Download, BarChart3 } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -18,7 +19,8 @@ import type { Income, Expense } from '@/types';
 type ReportPeriod = '1m' | '3m' | '6m' | '12m' | 'custom';
 
 export function ReportsPage() {
-  const { profile, familyMembers, addToast } = useAppStore();
+  const { profile, familyMembers } = useAppStore();
+  const addToast = useStableToast();
 
   const [period, setPeriod] = useState<ReportPeriod>('3m');
   const [customFrom, setCustomFrom] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
@@ -84,7 +86,7 @@ export function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.family_id, getDateRange, filterCategory, filterUser, addToast]);
+  }, [profile?.family_id, getDateRange, filterCategory, filterUser]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

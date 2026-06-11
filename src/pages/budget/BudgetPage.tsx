@@ -1,3 +1,4 @@
+import { useStableToast } from '@/hooks/useStableToast';
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '@/contexts/store';
@@ -126,7 +127,8 @@ function BudgetForm({
 
 // ── Main BudgetPage ────────────────────────────────────────────────────────────
 export function BudgetPage() {
-  const { profile, addToast } = useAppStore();
+  const { profile } = useAppStore();
+  const addToast = useStableToast();
   const { user } = useAuth();
   const { month: curMonth, year: curYear } = getCurrentMonthYear();
 
@@ -152,7 +154,7 @@ export function BudgetPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.family_id, month, year, addToast]);
+  }, [profile?.family_id, month, year]);
 
   useEffect(() => { load(); }, [load]);
 

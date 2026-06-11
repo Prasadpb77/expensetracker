@@ -1,3 +1,4 @@
+import { useStableToast } from '@/hooks/useStableToast';
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Search, Pencil, Trash2, TrendingDown, Users, Filter, CreditCard, Building2 } from 'lucide-react';
 import { useAppStore } from '@/contexts/store';
@@ -15,7 +16,8 @@ import { EXPENSE_CATEGORIES, CATEGORY_ICONS, CATEGORY_COLORS, PAYMENT_METHOD_LAB
 import type { Expense, ExpenseFormData } from '@/types';
 
 export function ExpensesPage() {
-  const { profile, familyMembers, addToast } = useAppStore();
+  const { profile, familyMembers } = useAppStore();
+  const addToast = useStableToast();
   const { user } = useAuth();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -47,7 +49,7 @@ export function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.family_id, filterCategory, filterUser, filterShared, addToast]);
+  }, [profile?.family_id, filterCategory, filterUser, filterShared]);
 
   useEffect(() => { loadExpenses(); }, [loadExpenses]);
 

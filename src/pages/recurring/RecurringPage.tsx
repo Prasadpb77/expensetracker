@@ -1,3 +1,4 @@
+import { useStableToast } from '@/hooks/useStableToast';
 import { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, Play, Pause, RefreshCw, TrendingUp, TrendingDown, Calendar, Zap } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -29,6 +30,7 @@ function RecurringForm({
 }) {
   const { user } = useAuth();
   const { familyMembers } = useAppStore();
+  const addToast = useStableToast();
 
   const [type, setType] = useState<'income' | 'expense'>(defaultValues?.type ?? 'expense');
   const [amountStr, setAmountStr] = useState(defaultValues?.amount ? String(defaultValues.amount) : '');
@@ -280,7 +282,8 @@ function RecurringCard({
 
 // ── Main Page ─────────────────────────────────────────────────
 export function RecurringPage() {
-  const { profile, addToast } = useAppStore();
+  const { profile } = useAppStore();
+  const addToast = useStableToast();
   const { user } = useAuth();
 
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
@@ -303,7 +306,7 @@ export function RecurringPage() {
     } catch (e) {
       addToast({ type: 'error', title: 'Failed to load recurring transactions', message: String(e) });
     } finally { setLoading(false); }
-  }, [profile?.family_id, addToast]);
+  }, [profile?.family_id]);
 
   useEffect(() => {
     load();
