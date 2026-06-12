@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, Receipt, PiggyBank,
   BarChart3, Settings, LogOut, Moon, Sun, Menu, X,
-  Wallet, Users, Target, RefreshCw, Sparkles,
+  Wallet, Users, Target, RefreshCw,
 } from 'lucide-react';
 import { cn, getInitials } from '@/utils';
 import { useAppStore } from '@/contexts/store';
@@ -18,7 +18,6 @@ const navigation = [
   { name: 'Budget',      href: '/budget',       icon: Wallet },
   { name: 'Recurring',   href: '/recurring',    icon: RefreshCw },
   { name: 'Reports',     href: '/reports',      icon: BarChart3 },
-  { name: 'Fin AI',      href: '/assistant',    icon: Sparkles },
   { name: 'Settings',    href: '/settings',     icon: Settings },
 ];
 
@@ -102,28 +101,14 @@ export function Sidebar() {
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                   !sidebarOpen && 'lg:justify-center lg:px-0',
                   isActive
-                    ? href === '/assistant'
-                      ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/40 dark:to-purple-950/40 text-blue-700 dark:text-blue-300'
-                      : 'bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300'
+                    ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300'
                     : 'text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-200'
                 )
               }
               title={!sidebarOpen ? name : undefined}
             >
-              {href === '/assistant'
-                ? <Icon className={cn('h-4 w-4 flex-shrink-0', !sidebarOpen && 'text-purple-500')} />
-                : <Icon className="h-4 w-4 flex-shrink-0" />
-              }
-              {sidebarOpen && (
-                <span className="flex items-center gap-2">
-                  {name}
-                  {href === '/assistant' && (
-                    <span style={{ fontSize: '0.6rem', padding: '1px 5px', borderRadius: 4, background: 'linear-gradient(135deg,#0284c7,#7c3aed)', color: 'white', fontWeight: 700, letterSpacing: '0.04em' }}>
-                      AI
-                    </span>
-                  )}
-                </span>
-              )}
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {sidebarOpen && <span>{name}</span>}
             </NavLink>
           ))}
         </nav>

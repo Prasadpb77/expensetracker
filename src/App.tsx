@@ -14,21 +14,18 @@ import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { InvestmentsPage } from '@/pages/investments/InvestmentsPage';
 import { GoalsPage } from '@/pages/goals/GoalsPage';
 import { RecurringPage } from '@/pages/recurring/RecurringPage';
-import { AssistantPage } from '@/pages/assistant/AssistantPage';
 
 export function App() {
   return (
     <BrowserRouter basename="/expensetracker">
       <AuthProvider>
         <Routes>
-          {/* Public routes */}
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           </Route>
 
-          {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard"   element={<DashboardPage />} />
@@ -39,7 +36,6 @@ export function App() {
               <Route path="/budget"      element={<BudgetPage />} />
               <Route path="/recurring"   element={<RecurringPage />} />
               <Route path="/reports"     element={<ReportsPage />} />
-              <Route path="/assistant"   element={<AssistantPage />} />
               <Route path="/settings"    element={<SettingsPage />} />
             </Route>
           </Route>

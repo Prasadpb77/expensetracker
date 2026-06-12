@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { cn } from '@/utils';
 import { Sidebar, TopBar } from './Sidebar';
 import { ToastContainer } from '@/components/ui/Toast';
+import { FinAssistant } from '@/components/ui/FinAssistant';
 import { useAppStore } from '@/contexts/store';
 
 export function Layout() {
@@ -11,7 +12,6 @@ export function Layout() {
     <div className="min-h-screen bg-surface-50 dark:bg-surface-950 font-sans">
       <Sidebar />
 
-      {/* Main content — offset for sidebar on desktop, safe areas on iOS */}
       <div
         className={cn(
           'flex flex-col min-h-screen transition-all duration-300',
@@ -22,13 +22,16 @@ export function Layout() {
         <TopBar />
         <main
           className="flex-1 p-4 sm:p-6 animate-fade-in"
-          style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
         >
           <Outlet />
         </main>
       </div>
 
       <ToastContainer />
+
+      {/* Floating AI Assistant — visible on all pages */}
+      <FinAssistant />
     </div>
   );
 }
