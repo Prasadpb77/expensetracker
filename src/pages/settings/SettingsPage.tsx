@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, CheckCircle, Link2, LogOut, Users, User } from 'lucide-react';
+import { Copy, CheckCircle, Link2, LogOut, Users, User, Trash2, AlertTriangle, Database } from 'lucide-react';
 import { useAppStore } from '@/contexts/store';
 import { useAuth } from '@/contexts/AuthContext';
 import { profileService } from '@/services/profile.service';
@@ -8,6 +8,116 @@ import { Badge } from '@/components/ui/Badge';
 import { getInitials } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 import { BiometricSetup } from '@/components/ui/BiometricSetup';
+
+
+// ── Data Cleanup Component ────────────────────────────────────────────────────
+function DataCleanup() {
+  const { profile, addToast } = useAppStore();
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<null | Record<string, unknown>>(null);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const cardCls = 'bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6';
+  const btnDanger = 'px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed';
+  const btnSecondary = 'px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg transition-colors cursor-pointer';
+
+  const handleCleanup = async () => {
+    if (!profile?.family_id) return;
+    setRunning(true);
+    setResult(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const res = await fetch(`${supabaseUrl}/functions/v1/cleanup-old-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ years_old: 2 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Cleanup failed');
+      setResult(data.result);
+      addToast({ type: 'success', title: '🗑️ Old data cleaned up successfully!' });
+      setConfirmed(false);
+    } catch (e) {
+      addToast({ type: 'error', title: 'Cleanup failed', message: String(e) });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className={cardCls}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h3 style={{ fontWeight: 700, fontSize: '1rem', margin: 0 }} className="text-gray-900 dark:text-gray-100">
+          Data Management
+        </h3>
+        <Database style={{ width: 16, height: 16 }} className="text-gray-400" />
+      </div>
+
+      <div style={{ padding: '0.875rem', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+          <AlertTriangle style={{ width: 16, height: 16, color: '#d97706', flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <p style={{ fontWeight: 700, fontSize: '0.875rem', color: '#92400e', margin: 0 }}>
+              Delete records older than 2 years
+            </p>
+            <p style={{ fontSize: '0.75rem', color: '#b45309', margin: '3px 0 0' }}>
+              This permanently deletes expenses, income and goal contributions older than 2 years. Budgets and goals are kept. This cannot be undone.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {result && (
+        <div style={{ padding: '0.75rem', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', marginBottom: '1rem' }}>
+          <p style={{ fontWeight: 700, fontSize: '0.8rem', color: '#15803d', margin: '0 0 6px' }}>Cleanup complete ✅</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+            {[
+              { label: 'Expenses deleted', value: result.deleted_expenses },
+              { label: 'Income deleted', value: result.deleted_income },
+              { label: 'Contributions deleted', value: result.deleted_goal_contributions },
+              { label: 'Cutoff date', value: String(result.cutoff_date) },
+            ].map(r => (
+              <div key={r.label} style={{ fontSize: '0.75rem' }}>
+                <span style={{ color: '#64748b' }}>{r.label}: </span>
+                <span style={{ fontWeight: 700, color: '#15803d' }}>{String(r.value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!confirmed ? (
+        <button
+          type="button"
+          onClick={() => setConfirmed(true)}
+          className={btnSecondary}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <Trash2 style={{ width: 15, height: 15 }} />
+          Clean up old data
+        </button>
+      ) : (
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>
+            Are you sure? This is permanent.
+          </p>
+          <button type="button" onClick={() => setConfirmed(false)} className={btnSecondary} style={{ padding: '0.4rem 0.75rem' }}>
+            Cancel
+          </button>
+          <button type="button" onClick={handleCleanup} disabled={running} className={btnDanger} style={{ padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Trash2 style={{ width: 14, height: 14 }} />
+            {running ? 'Deleting...' : 'Yes, delete'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -311,6 +421,9 @@ export function SettingsPage() {
 
       {/* ── BIOMETRIC LOGIN ── */}
       <BiometricSetup />
+
+      {/* ── DATA CLEANUP ── */}
+      <DataCleanup />
 
       {/* ── SIGN OUT ── */}
       <div className={cardClass}>
