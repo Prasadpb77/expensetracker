@@ -1,285 +1,411 @@
-# 💰 FamilyFinance — Personal Expense Tracker for Couples
+# Expense Tracker - Automated SMS Expense Tracking System
 
-A modern, full-featured expense management web app built for married couples.
-Track income, expenses, budgets, and savings together — deployed entirely on **free tiers**.
+A complete automated expense tracking system that detects bank SMS transactions and pushes real-time notifications to approve/ignore expenses.
 
----
-
-## 🚀 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, TypeScript, Vite |
-| Styling | Tailwind CSS |
-| Routing | React Router v6 |
-| State | Zustand |
-| Forms | React Hook Form + Zod |
-| Charts | Recharts |
-| Backend | Supabase (Auth + PostgreSQL + RLS) |
-| Hosting | GitHub Pages |
-
----
-
-## 📁 Project Structure
+## 🏗️ Architecture
 
 ```
-src/
-├── components/
-│   ├── ui/           # Button, Card, Input, Modal, Toast, Badge, Skeleton, StatCard
-│   ├── layout/       # Sidebar, Layout, ProtectedRoute
-│   ├── charts/       # IncomeExpenseChart, CategoryPieChart, SavingsTrendChart
-│   └── forms/        # IncomeForm, ExpenseForm
-├── pages/
-│   ├── auth/         # LoginPage, RegisterPage, ForgotPasswordPage
-│   ├── dashboard/    # DashboardPage
-│   ├── income/       # IncomePage
-│   ├── expenses/     # ExpensesPage
-│   ├── budget/       # BudgetPage
-│   ├── reports/      # ReportsPage
-│   └── settings/     # SettingsPage
-├── hooks/            # (extend as needed)
-├── services/         # auth, profile, income, expense, budget
-├── contexts/         # AuthContext, store (Zustand)
-├── types/            # index.ts (all TypeScript types)
-├── utils/            # index.ts (formatting, helpers, CSV export)
-└── lib/              # supabase.ts
+┌─────────────────────────────────────────────────────────────────┐
+│                    AUTOMATED EXPENSE TRACKING FLOW               │
+└─────────────────────────────────────────────────────────────────┘
+
+  [Bank SMS] 
+       │
+       ▼
+  [Android SMS Receiver] ──► [React Native App]
+       │                           │
+       │                           ▼
+       │                    [POST /api/v1/sms/receive]
+       │                           │
+       ▼                           ▼
+  [Supabase Edge Function] ◄── [Parse SMS + Extract Amount]
+       │
+       ▼
+  [Store in sms_transactions table]
+       │
+       ▼
+  [Push to notifications table]
+       │
+       ▼
+  [Web App - Real-time Polling / Realtime Channel]
+       │
+       ▼
+  [SmsApprovalModal pops up]
+       │
+       ├──► [Ignore] ──► Mark as rejected
+       │
+       └──► [Add Expense] ──► Create expense + Mark as approved
 ```
 
----
+## 📦 Deliverables
 
-## ✅ Step-by-Step Setup
+### 1. Backend - Supabase Edge Function
+**File:** `supabase/functions/api-sms-receive/index.ts`
 
-### STEP 1 — Clone or Create the Repository
+- **Endpoint:** `POST /api/v1/sms/receive`
+- **Purpose:** Accepts raw SMS text from mobile app, parses it using regex, stores in database, pushes notification
+- **Features:**
+  - Multi-bank regex patterns (HDFC, SBI, ICICI, Axis, UPI, generic)
+  - Extracts: amount, payee, bank, UPI reference
+  - Confidence scoring (high/medium/low)
+  - Real-time push via Supabase Realtime broadcast
+  - Stores in `sms_transactions` and `notifications` tables
 
+### 2. Database Schema
+**File:** `supabase/sql/supabase-sms-schema.sql`
+
+Run this SQL in Supabase Dashboard → SQL Editor:
+
+```sql
+-- Creates 2 tables:
+-- 1. sms_transactions - logs every incoming SMS with parsed data
+-- 2. notifications - for poll-based notification delivery
+
+-- Enables RLS, indexes, and realtime
+```
+
+**Tables:**
+- `sms_transactions`: id, user_id, raw_text, amount, payee, bank, upi_ref, confidence, status, category, payment_method, expense_id, device_id, timestamps
+- `notifications`: id, user_id, type, title, message, data (JSONB), is_read, created_at
+
+### 3. Frontend - React Hook
+**File:** `src/hooks/useSmsNotifications.ts`
+
+- **Purpose:** Listens for real-time SMS transaction notifications
+- **Features:**
+  - Polls `notifications` table every 5 seconds
+  - Listens to Supabase Realtime channel `sms-transaction-{user_id}`
+  - Auto-shows modal when new transaction detected
+  - Marks notifications as read
+  - Returns: `pendingTransaction`, `showModal`, `dismissTransaction`, `markAsRead`
+
+### 4. Frontend - Approval Modal
+**File:** `src/components/ui/SmsApprovalModal.tsx`
+
+- **Purpose:** Beautiful notification card with pre-filled transaction details
+- **Features:**
+  - Shows: Amount (large), Payee, Bank, UPI Ref, Detection time
+  - Category picker (dropdown with icons)
+  - Payment method picker (Personal, Joint Account, Credit Card)
+  - "Ignore" button - marks as rejected
+  - "Add Expense" button - creates expense and marks as approved
+  - Gradient header with animated bell icon
+  - Fully typed with TypeScript
+
+### 5. Frontend - Layout Integration
+**File:** `src/components/layout/Layout.tsx`
+
+- Wires `useSmsNotifications` hook
+- Renders `SmsApprovalModal` when `showModal` is true
+- Works globally on all pages
+
+### 6. Mobile App - React Native
+**File:** `mobile/App.tsx`
+
+- **Purpose:** Lightweight companion app that runs on user's phone
+- **Features:**
+  - Requests SMS permissions (Android 13+ compatible)
+  - Listens for incoming SMS via native module
+  - Filters bank transaction SMS
+  - Deduplicates (skips if same SMS within 60s)
+  - Forwards to backend via POST request
+  - Shows local notification when expense detected
+  - Displays recent transactions list
+  - Retry failed transactions
+
+### 7. Android Native Module
+**Files:**
+- `mobile/android/app/src/main/java/com/smsexpensetracker/SmsModule.java` - React Native bridge
+- `mobile/android/app/src/main/java/com/smsexpensetracker/SmsPackage.java` - Package registration
+- `mobile/android/app/src/main/java/com/smsexpensetracker/SmsReceiver.java` - Background SMS receiver
+- `mobile/android/app/src/main/java/com/smsexpensetracker/MainApplication.java` - App configuration
+- `mobile/android/app/src/main/AndroidManifest.xml` - Permissions & receiver registration
+
+**Features:**
+- BroadcastReceiver for `SMS_RECEIVED` intent
+- High priority (999) to receive SMS before other apps
+- Bank SMS detection in native code
+- Emits events to React Native
+- Shows Android notifications
+- Creates notification channel (Android 8+)
+
+## 🚀 Setup Instructions
+
+### Backend Setup
+
+1. **Run the SQL schema:**
+   - Go to Supabase Dashboard → SQL Editor
+   - Copy contents of `supabase/sql/supabase-sms-schema.sql`
+   - Execute to create tables
+
+2. **Deploy the Edge Function:**
+   ```bash
+   # Install Supabase CLI
+   npm install -g supabase
+   
+   # Login
+   supabase login
+   
+   # Link project
+   supabase link --project-ref ntcvlnurhsncllwnxtus
+   
+   # Deploy function
+   supabase functions deploy api-sms-receive --file supabase/functions/api-sms-receive/index.ts
+   ```
+
+3. **Set environment variables:**
+   - In Supabase Dashboard → Edge Functions → api-sms-receive → Settings
+   - Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (auto-configured)
+   - Your project URL: `https://ntcvlnurhsncllwnxtus.supabase.co`
+
+### Frontend Setup
+
+The frontend is already integrated! Just ensure:
+
+1. **Dependencies installed:**
+   ```bash
+   npm install
+   ```
+
+2. **Environment variables:**
+   - `.env` file with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+
+3. **Run the app:**
+   ```bash
+   npm run dev
+   ```
+
+The `SmsApprovalModal` will automatically appear when a bank SMS is detected via the `useSmsNotifications` hook.
+
+### Mobile App Setup
+
+1. **Initialize React Native project:**
+   ```bash
+   npx react-native init SmsExpenseTracker --template react-native-template-typescript
+   cd SmsExpenseTracker
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install @react-native-async-storage/async-storage
+   ```
+
+3. **Copy files:**
+   - Copy `mobile/App.tsx` to `App.tsx`
+   - Copy Android native files to `android/app/src/main/java/com/smsexpensetracker/`
+   - Copy `AndroidManifest.xml` to `android/app/src/main/`
+
+4. **Update configuration:**
+   - Edit `mobile/App.tsx`:
+     - Set `API_URL` to your Supabase Edge Function URL
+     - Set `SUPABASE_ANON_KEY` to your Supabase anon key
+
+5. **Build and run:**
+   ```bash
+   npx react-native run-android
+   ```
+
+## 🔧 How It Works
+
+### End-to-End Flow
+
+1. **User makes a payment** via UPI/bank
+2. **Bank sends SMS** to user's phone
+3. **Android SMS Receiver** (native) detects the SMS
+4. **React Native app** receives the SMS via event emitter
+5. **App filters** for bank transaction keywords
+6. **App POSTs** to `/api/v1/sms/receive` with:
+   ```json
+   {
+     "text": "₹500 paid to Rahul Kumar. UPI: 123456789012",
+     "user_id": "user-uuid",
+     "device_id": "device_123"
+   }
+   ```
+7. **Edge Function** parses SMS using regex:
+   - Extracts amount: ₹500
+   - Extracts payee: Rahul Kumar
+   - Extracts bank: UPI Payment
+   - Extracts UPI ref: 123456789012
+8. **Stores** in `sms_transactions` table (status: pending)
+9. **Inserts** into `notifications` table (is_read: false)
+10. **Pushes** via Supabase Realtime broadcast
+11. **Web app** polls notifications every 5s OR receives realtime event
+12. **SmsApprovalModal** pops up showing:
+    - Amount: ₹500
+    - Paid to: Rahul Kumar
+    - Bank: UPI Payment
+    - UPI Ref: 123456789012
+13. **User selects:**
+    - Category: Food / Groceries / Transport / etc.
+    - Payment Method: Personal / Joint Account / Credit Card
+14. **User clicks "Add Expense"**:
+    - Creates expense in `expenses` table
+    - Updates `sms_transactions` status to 'approved'
+    - Links `expense_id` to SMS record
+    - Marks notification as read
+    - Shows success toast
+15. **OR user clicks "Ignore"**:
+    - Updates `sms_transactions` status to 'rejected'
+    - Marks notification as read
+    - Shows info toast
+
+## 🎨 UI Components
+
+### SmsApprovalModal
+- **Triggered:** Automatically when SMS detected
+- **Shows:**
+  - Animated bell icon with "Live" badge
+  - Large amount display (red, bold)
+  - Payee, Bank, UPI Ref, Timestamp
+  - Category dropdown with emoji icons
+  - Payment method dropdown
+  - "Ignore" (gray) and "Add Expense" (gradient blue-purple) buttons
+- **Actions:**
+  - Approve: Creates expense, marks as read
+  - Ignore: Marks as rejected, dismisses
+
+### QuickExpenseAdd (Fallback)
+- **Triggered:** Manual floating button (bottom-left)
+- **Shows:** Simple form with amount, payee, category, payment method
+- **Use case:** When SMS detection isn't available
+
+## 🔐 Security
+
+- **Row Level Security (RLS):** Users can only access their own data
+- **Service Role:** Edge function uses service role key (server-side only)
+- **User Token:** Mobile app sends user_id (validated against auth)
+- **CORS:** Proper CORS headers for cross-origin requests
+- **Permission Scoping:** Android permissions requested at runtime
+
+## 📊 Database Schema
+
+### sms_transactions
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | References auth.users |
+| raw_text | TEXT | Original SMS text |
+| amount | DECIMAL(12,2) | Parsed amount |
+| payee | TEXT | Payee name |
+| bank | TEXT | Bank name |
+| upi_ref | TEXT | UPI reference |
+| confidence | TEXT | high/medium/low |
+| status | TEXT | pending/approved/rejected/ignored |
+| category | TEXT | Selected category |
+| payment_method | TEXT | Selected payment method |
+| expense_id | UUID | Linked expense |
+| device_id | TEXT | Mobile device ID |
+| created_at | TIMESTAMPTZ | Created timestamp |
+| updated_at | TIMESTAMPTZ | Updated timestamp |
+
+### notifications
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | References auth.users |
+| type | TEXT | sms_expense |
+| title | TEXT | Notification title |
+| message | TEXT | Notification message |
+| data | JSONB | Transaction data |
+| is_read | BOOLEAN | Read status |
+| created_at | TIMESTAMPTZ | Created timestamp |
+
+## 🧪 Testing
+
+### Test the Edge Function
 ```bash
-# Option A: Create from scratch
-mkdir expense-tracker && cd expense-tracker
-git init
-
-# Option B: Clone if you already have a repo
-git clone https://github.com/YOUR_USERNAME/expense-tracker.git
-cd expense-tracker
+curl -X POST https://ntcvlnurhsncllwnxtus.supabase.co/functions/v1/api-sms-receive \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "₹500 paid to Rahul Kumar (rahul@upi). UPI: 123456789012",
+    "user_id": "your-user-id"
+  }'
 ```
 
----
-
-### STEP 2 — Install Dependencies
-
-```bash
-npm install
+### Test SMS Detection
+Send a test SMS to your phone:
+```
+HDFC Bank: Rs.500.00 debited from a/c XX1234 to SWIGGY on 2024-01-15. UPI: 123456789012. Avl Bal: Rs.10000.00
 ```
 
----
+The mobile app should detect it and forward to backend.
 
-### STEP 3 — Set Up Supabase
+## 📝 Supported SMS Formats
 
-#### 3a. Create a Supabase Project
-1. Go to [https://supabase.com](https://supabase.com)
-2. Click **"New Project"**
-3. Name it `expense-tracker`, choose a region close to India (e.g. **ap-south-1** Singapore)
-4. Set a strong database password and save it
-5. Wait ~2 minutes for the project to boot
-
-#### 3b. Run the SQL Schema
-1. In your Supabase dashboard, click **SQL Editor** (left sidebar)
-2. Click **"New query"**
-3. Copy the entire contents of `supabase-schema.sql` from this project
-4. Paste it and click **Run** (▶️)
-5. You should see: "Success. No rows returned"
-
-#### 3c. Enable Email Auth
-1. Go to **Authentication → Providers**
-2. Ensure **Email** is enabled
-3. (Optional) Turn off "Confirm email" for development
-
-#### 3d. Get Your API Keys
-1. Go to **Project Settings → API**
-2. Copy:
-   - **Project URL** → e.g. `https://abcdefgh.supabase.co`
-   - **anon / public key** → long JWT string
-
----
-
-### STEP 4 — Configure Environment Variables
-
-```bash
-# Copy the example file
-cp .env.example .env
-
-# Edit it with your Supabase credentials
-nano .env   # or use any text editor
+### HDFC Bank
+```
+HDFC Bank: Rs.500.00 debited from a/c XX1234 to SWIGGY. UPI: 123456789012
 ```
 
-Your `.env` should look like:
-```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+### SBI
+```
+SBI: Rs.1,200 debited to AMAZON. Ref: TXN123456
 ```
 
----
-
-### STEP 5 — Update Vite Base Path
-
-In `vite.config.ts`, set `base` to your **GitHub repository name**:
-
-```ts
-export default defineConfig({
-  base: '/expense-tracker/',   // ← change to your repo name
-  ...
-})
+### ICICI
+```
+ICICI Bank: INR 750.00 paid to FLIPKART on 15-Jan-2024
 ```
 
-Also update `src/App.tsx`:
-```tsx
-<BrowserRouter basename="/expense-tracker">  // ← same repo name
+### UPI (Google Pay / PhonePe / Paytm)
+```
+₹500 paid to Rahul Kumar (rahul@okaxis). UPI: 123456789012
+Payment of ₹1,200 to Swiggy successful
+Rs.350 debited from a/c XX5678 to Zomato
 ```
 
----
-
-### STEP 6 — Run Locally
-
-```bash
-npm run dev
+### Generic Bank
+```
+Rs.500 debited to Merchant Name. Available balance: Rs.10000
 ```
 
-Open [http://localhost:5173/expense-tracker/](http://localhost:5173/expense-tracker/)
+## 🛠️ Tech Stack
+
+- **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS
+- **Backend:** Supabase Edge Functions (Deno)
+- **Database:** PostgreSQL (Supabase)
+- **Realtime:** Supabase Realtime (broadcast + polling)
+- **Mobile:** React Native + Android Native Modules
+- **SMS Detection:** Android BroadcastReceiver + SMS permissions
+
+## 📱 Mobile App Features
+
+- **Background SMS listening** (Android)
+- **Permission handling** (Android 13+ compatible)
+- **Bank SMS filtering** (keyword + amount detection)
+- **Deduplication** (60s window)
+- **Local notifications** when expense detected
+- **Transaction history** (last 20)
+- **Retry failed** transactions
+- **Device ID** persistence
+- **User ID** management
+
+## 🎯 Next Steps
+
+1. **Deploy** the Edge Function to Supabase
+2. **Run** the SQL schema in Supabase
+3. **Build** the React Native mobile app
+4. **Test** with real bank SMS
+5. **Customize** regex patterns for your bank
+6. **Add** more banks to the parser
+7. **Implement** iOS version (requires different approach due to iOS restrictions)
+
+## ⚠️ Notes
+
+- **iOS Limitation:** iOS doesn't allow background SMS reading. Use manual entry or share extension.
+- **Android Permissions:** READ_SMS permission is sensitive. Google Play may require justification.
+- **Battery Optimization:** Ask users to disable battery optimization for the app to ensure background SMS listening works.
+- **Privacy:** SMS data is sent to your backend. Ensure compliance with privacy regulations.
+
+## 📄 License
+
+MIT
+
+## 👨‍💻 Author
+
+Built with ❤️ by [Your Name]
 
 ---
 
-### STEP 7 — First-Time App Setup
-
-1. **Register** an account (Prasad)
-2. Go to **Settings**
-3. Click **"Create Family"** → give it a name (e.g. "Prasad & Priya")
-4. Copy the **Invite Code** shown
-5. Register a **second account** (Priya / your spouse)
-6. Go to **Settings** → **"Join Family"** → paste the invite code
-7. Both accounts now share the same family data
-
----
-
-## 🌐 Deploy to GitHub Pages
-
-### Option A — Automatic (GitHub Actions) — RECOMMENDED
-
-#### 8a. Push code to GitHub
-
-```bash
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/expense-tracker.git
-git push -u origin main
-```
-
-#### 8b. Add Supabase secrets to GitHub
-
-1. Go to your GitHub repo → **Settings → Secrets and variables → Actions**
-2. Click **"New repository secret"** and add:
-   - Name: `VITE_SUPABASE_URL` → Value: your Supabase URL
-   - Name: `VITE_SUPABASE_ANON_KEY` → Value: your anon key
-
-#### 8c. Enable GitHub Pages
-
-1. Go to **Settings → Pages**
-2. Under **Source**, select **"GitHub Actions"**
-3. Save
-
-#### 8d. Trigger Deployment
-
-```bash
-git push origin main
-```
-
-GitHub Actions will automatically build and deploy. Check the **Actions** tab for progress.
-
-Your app will be live at:
-```
-https://YOUR_USERNAME.github.io/expense-tracker/
-```
-
----
-
-### Option B — Manual Deploy
-
-```bash
-npm install -g gh-pages
-npm run build
-npx gh-pages -d dist
-```
-
----
-
-## 🗄️ Database Schema Summary
-
-| Table | Description |
-|-------|-------------|
-| `profiles` | Extends Supabase auth.users |
-| `families` | Links husband and wife |
-| `categories` | Expense/income categories (seeded) |
-| `income` | All income records |
-| `expenses` | All expense records |
-| `budgets` | Monthly budget limits per category |
-
-All tables use **Row Level Security (RLS)** — users can only access their own family's data.
-
----
-
-## 🔒 Security Notes
-
-- RLS is enabled on all tables
-- Users only see data from their own family
-- The anon key is safe to expose in the frontend (Supabase is designed this way)
-- Never commit `.env` to git (it's in `.gitignore`)
-
----
-
-## 🐛 Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| Blank page on GitHub Pages | Check `base` in `vite.config.ts` matches repo name |
-| 404 on page refresh | Ensure `public/404.html` exists in repo |
-| Supabase auth not working | Check URL/key in `.env`, confirm Email provider is enabled |
-| "No family" on dashboard | Go to Settings and create/join a family |
-| RLS errors | Re-run the SQL schema, ensure RLS policies were created |
-| Charts not showing | Add at least one income and expense record |
-
----
-
-## 📱 Features
-
-- ✅ Login / Register / Forgot Password
-- ✅ Dashboard with income, expense, savings cards
-- ✅ Income vs Expense bar chart (6 months)
-- ✅ Category pie chart with interactive legend
-- ✅ Savings trend area chart
-- ✅ Add / Edit / Delete Income
-- ✅ Add / Edit / Delete Expenses with category, paid-by, shared flag
-- ✅ Monthly budget tracking with colour-coded progress bars
-- ✅ Reports with date range filters and CSV export
-- ✅ Multi-user (husband + wife) with invite code
-- ✅ Dark mode
-- ✅ Mobile responsive
-- ✅ Real-time data from Supabase
-
----
-
-## 📦 npm Commands Reference
-
-```bash
-npm run dev        # Start development server
-npm run build      # Build for production
-npm run preview    # Preview production build locally
-npm run lint       # Run ESLint
-```
-
----
-
-## 🆓 Free Tier Limits
-
-| Service | Free Tier |
-|---------|-----------|
-| Supabase | 500MB DB, 1GB storage, 50K auth users |
-| GitHub Pages | Unlimited static hosting |
-
-This app runs entirely within free limits for personal use.
+**Ready to deploy!** All code is production-ready and fully typed with TypeScript.

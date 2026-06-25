@@ -1,6 +1,6 @@
 import { useStableToast } from '@/hooks/useStableToast';
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Search, Pencil, Trash2, TrendingDown, Users, Filter, CreditCard, Building2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, TrendingDown, Users, Filter, CreditCard, Building2, Volume2 } from 'lucide-react';
 import { useAppStore } from '@/contexts/store';
 import { useAuth } from '@/contexts/AuthContext';
 import { expenseService } from '@/services/expense.service';

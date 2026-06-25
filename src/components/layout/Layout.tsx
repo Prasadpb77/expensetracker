@@ -1,14 +1,33 @@
 import { Outlet } from 'react-router-dom';
 import { cn } from '@/utils';
 import { Sidebar, TopBar } from './Sidebar';
+import { useSmsNotifications } from '@/hooks/useSmsNotifications';
+import { SmsApprovalModal } from '@/components/ui/SmsApprovalModal';
+import { QuickExpenseAdd } from '@/components/ui/QuickExpenseAdd';
 import { ToastContainer } from '@/components/ui/Toast';
 import { FinAssistant } from '@/components/ui/FinAssistant';
 import { useAppStore } from '@/contexts/store';
 
 export function Layout() {
   const { sidebarOpen } = useAppStore();
+  const {
+    pendingTransaction,
+    showModal,
+    notifications,
+    dismissTransaction,
+    markAsRead,
+  } = useSmsNotifications();
 
   return (
+    <>
+      {showModal && pendingTransaction && (
+        <SmsApprovalModal
+          transaction={pendingTransaction}
+          notificationId={notifications[0]?.id}
+          onDismiss={dismissTransaction}
+          onMarkRead={markAsRead}
+        />
+      )}
     <div className="min-h-screen bg-surface-50 dark:bg-surface-950 font-sans">
       <Sidebar />
 
@@ -30,8 +49,12 @@ export function Layout() {
 
       <ToastContainer />
 
+      {/* Quick Expense Add — floating button to log bank SMS payments */}
+      <QuickExpenseAdd />
+
       {/* Floating AI Assistant — visible on all pages */}
       <FinAssistant />
     </div>
+    </>
   );
 }
