@@ -255,7 +255,7 @@ export function QuickExpenseAdd() {
                   <ChevronDown className="h-3.5 w-3.5 text-surface-400" />
                 </button>
                 {showPaymentPicker && (
-                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl shadow-lg overflow-hidden">
+                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl shadow-lg max-h-40 overflow-y-auto">
                     {paymentOptions.map(opt => (
                       <button
                         key={opt.value}
