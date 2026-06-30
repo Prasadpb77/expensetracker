@@ -114,7 +114,7 @@ export default defineConfig({
         ],
         navigateFallback: '/expensetracker/',
         cleanupOutdatedCaches: true,
-        sourceMap: false
+        sourcemap: false
       },
       devOptions: {
         enabled: false
