@@ -72,6 +72,30 @@ export function getLastNMonths(n: number): { from: string; to: string } {
   };
 }
 
+export function getLifetimeRange(): { from: string; to: string } {
+  return {
+    from: '2000-01-01',
+    to: format(new Date(), 'yyyy-MM-dd'),
+  };
+}
+
+export function getDateRangeForPeriod(period: string): { from: string; to: string } {
+  switch (period) {
+    case 'current_month':
+      return getCurrentMonth();
+    case '3_months':
+      return getLastNMonths(3);
+    case '6_months':
+      return getLastNMonths(6);
+    case '12_months':
+      return getLastNMonths(12);
+    case 'lifetime':
+      return getLifetimeRange();
+    default:
+      return getCurrentMonth();
+  }
+}
+
 export function getMonthName(month: number): string {
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',

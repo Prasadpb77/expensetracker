@@ -32,14 +32,17 @@ export function IncomePage() {
   const [search, setSearch] = useState('');
   const [filterSource, setFilterSource] = useState('');
   const [filterUser, setFilterUser] = useState('');
+  const [timePeriod, setTimePeriod] = useState('current_month');
 
   const loadIncomes = useCallback(async () => {
     if (!profile?.family_id) { setLoading(false); return; }
     setLoading(true);
     try {
+      const dateRange = getDateRangeForPeriod(timePeriod);
       const data = await incomeService.getAll(profile.family_id, {
         source: filterSource || undefined,
         userId: filterUser || undefined,
+        dateRange,
       });
       setIncomes(data);
     } catch (e) {
@@ -47,7 +50,7 @@ export function IncomePage() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.family_id, filterSource, filterUser]);
+  }, [profile?.family_id, filterSource, filterUser, timePeriod]);
 
   useEffect(() => { loadIncomes(); }, [loadIncomes]);
 
@@ -98,10 +101,9 @@ export function IncomePage() {
     );
   });
 
-  const currentMonth = getCurrentMonth();
-  const currentMonthTotal = incomes
-    .filter(i => i.date >= currentMonth.from && i.date <= currentMonth.to)
-    .reduce((s, i) => s + Number(i.amount), 0);
+  const dateRange = getDateRangeForPeriod(timePeriod);
+  const filteredByDate = incomes.filter(i => i.date >= dateRange.from && i.date <= dateRange.to);
+  const periodTotal = filteredByDate.reduce((s, i) => s + Number(i.amount), 0);
   const totalAll = incomes.reduce((s, i) => s + Number(i.amount), 0);
   const monthCount = new Set(incomes.map(i => i.date.slice(0, 7))).size;
   const avgMonthly = monthCount > 0 ? totalAll / monthCount : 0;
@@ -113,6 +115,13 @@ export function IncomePage() {
   const memberOptions = [
     { value: '', label: 'All Members' },
     ...familyMembers.map(m => ({ value: m.id, label: m.display_name })),
+  ];
+  const timePeriodOptions = [
+    { value: 'current_month', label: 'Current Month' },
+    { value: '3_months', label: 'Last 3 Months' },
+    { value: '6_months', label: 'Last 6 Months' },
+    { value: '12_months', label: 'Last 12 Months' },
+    { value: 'lifetime', label: 'Lifetime' },
   ];
 
   return (
@@ -130,7 +139,7 @@ export function IncomePage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'This Month', amount: currentMonthTotal },
+          { label: timePeriodOptions.find(t => t.value === timePeriod)?.label || 'Period Total', amount: periodTotal },
           { label: 'Total (All Time)', amount: totalAll },
           { label: 'Monthly Average', amount: avgMonthly },
         ].map(s => (
@@ -148,6 +157,7 @@ export function IncomePage() {
             <Input placeholder="Search income..." leftIcon={<Search className="h-4 w-4" />}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <Select options={timePeriodOptions} value={timePeriod} onChange={e => setTimePeriod(e.target.value)} className="sm:w-40" />
           <Select options={sourceOptions} value={filterSource} onChange={e => setFilterSource(e.target.value)} className="sm:w-40" />
           {familyMembers.length > 1 && (
             <Select options={memberOptions} value={filterUser} onChange={e => setFilterUser(e.target.value)} className="sm:w-40" />

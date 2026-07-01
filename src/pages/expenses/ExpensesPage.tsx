@@ -34,14 +34,17 @@ export function ExpensesPage() {
   const [filterUser, setFilterUser] = useState('');
   const [filterShared, setFilterShared] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
+  const [timePeriod, setTimePeriod] = useState('current_month');
 
   const loadExpenses = useCallback(async () => {
     if (!profile?.family_id) return;
     try {
+      const dateRange = getDateRangeForPeriod(timePeriod);
       const data = await expenseService.getAll(profile.family_id, {
         category: filterCategory || undefined,
         userId: filterUser || undefined,
         isShared: filterShared === '' ? undefined : filterShared === 'true',
+        dateRange,
       });
       setExpenses(data);
     } catch {
@@ -49,7 +52,7 @@ export function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.family_id, filterCategory, filterUser, filterShared]);
+  }, [profile?.family_id, filterCategory, filterUser, filterShared, timePeriod]);
 
   useEffect(() => { loadExpenses(); }, [loadExpenses]);
 
@@ -115,9 +118,9 @@ export function ExpensesPage() {
   });
 
   // Summary stats
-  const currentMonth = getCurrentMonth();
-  const currentMonthExpenses = expenses.filter(e => e.date >= currentMonth.from && e.date <= currentMonth.to);
-  const currentMonthTotal = currentMonthExpenses.reduce((s, e) => s + Number(e.amount), 0);
+  const dateRange = getDateRangeForPeriod(timePeriod);
+  const filteredByDate = expenses.filter(e => e.date >= dateRange.from && e.date <= dateRange.to);
+  const periodTotal = filteredByDate.reduce((s, e) => s + Number(e.amount), 0);
   const myTotal = expenses.filter(e => e.paid_by === user?.id).reduce((s, e) => s + Number(e.amount), 0);
   const sharedTotal = expenses.filter(e => e.is_shared).reduce((s, e) => s + Number(e.amount), 0);
   const jointTotal = expenses.filter(e => e.payment_method === 'joint_account').reduce((s, e) => s + Number(e.amount), 0);
@@ -142,6 +145,13 @@ export function ExpensesPage() {
     { value: 'joint_account', label: '🏦 Joint Account' },
     { value: 'credit_card', label: '💳 Credit Card' },
   ];
+  const timePeriodOptions = [
+    { value: 'current_month', label: 'Current Month' },
+    { value: '3_months', label: 'Last 3 Months' },
+    { value: '6_months', label: 'Last 6 Months' },
+    { value: '12_months', label: 'Last 12 Months' },
+    { value: 'lifetime', label: 'Lifetime' },
+  ];
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -160,7 +170,7 @@ export function ExpensesPage() {
       {/* Stats Row 1 - personal */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'This Month', amount: currentMonthTotal, icon: <TrendingDown className="h-4 w-4" />, color: '#dc2626', bg: '#fef2f2' },
+          { label: timePeriodOptions.find(t => t.value === timePeriod)?.label || 'Period Total', amount: periodTotal, icon: <TrendingDown className="h-4 w-4" />, color: '#dc2626', bg: '#fef2f2' },
           { label: 'My Expenses', amount: myTotal, icon: <TrendingDown className="h-4 w-4" />, color: '#dc2626', bg: '#fef2f2' },
           { label: 'Shared Expenses', amount: sharedTotal, icon: <Users className="h-4 w-4" />, color: '#7c3aed', bg: '#f5f3ff' },
         ].map(s => (
@@ -228,6 +238,7 @@ export function ExpensesPage() {
             <Input placeholder="Search expenses..." leftIcon={<Search className="h-4 w-4" />}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <Select options={timePeriodOptions} value={timePeriod} onChange={e => setTimePeriod(e.target.value)} className="sm:w-40" />
           <Select options={categoryOptions} value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="sm:w-44" />
           {familyMembers.length > 1 && (
             <Select options={memberOptions} value={filterUser} onChange={e => setFilterUser(e.target.value)} className="sm:w-36" />
