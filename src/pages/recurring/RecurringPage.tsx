@@ -351,11 +351,18 @@ export function RecurringPage() {
     if (!deletingId) return;
     setDeleting(true);
     try {
+      console.log('Deleting recurring transaction:', deletingId);
       await recurringService.delete(deletingId);
       addToast({ type: 'success', title: 'Deleted' });
       setDeletingId(null);
-      await load();
-    } catch { addToast({ type: 'error', title: 'Failed to delete' }); }
+      // Force reload after a short delay to ensure DB consistency
+      setTimeout(async () => {
+        await load();
+      }, 300);
+    } catch (e) {
+      addToast({ type: 'error', title: 'Failed to delete', message: e instanceof Error ? e.message : String(e) });
+      console.error('Delete error:', e);
+    }
     finally { setDeleting(false); }
   };
 
@@ -407,6 +414,9 @@ export function RecurringPage() {
           <Button variant="outline" size="sm" onClick={handleProcessAll} loading={processing}
             leftIcon={<Zap className="h-3.5 w-3.5" />}>
             Process Due
+          </Button>
+          <Button variant="outline" size="sm" onClick={load} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
+            Refresh
           </Button>
           <Button onClick={() => setShowAddModal(true)} leftIcon={<Plus className="h-4 w-4" />}>
             Add Recurring
