@@ -149,7 +149,7 @@ export function QuickExpenseAdd() {
       {/* Mini form popup */}
       {isOpen && (
         <div className="fixed bottom-28 left-4 right-4 z-[9997] max-w-md mx-auto animate-slide-up">
-          <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-surface-200 dark:border-surface-700 overflow-hidden">
+          <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-surface-200 dark:border-surface-700">
             
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-surface-100 dark:border-surface-700">

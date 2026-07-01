@@ -73,7 +73,7 @@ export function DashboardPage() {
         expenseService.getTotalByDateRange(familyId, currentMonth.from, currentMonth.to),
         incomeService.getMonthlyTotals(familyId, MONTHS),
         expenseService.getMonthlyTotals(familyId, MONTHS),
-        expenseService.getCategoryBreakdown(familyId, lastNMonths.from, lastNMonths.to),
+        expenseService.getCategoryBreakdown(familyId, currentMonth.from, currentMonth.to),
         incomeService.getAll(familyId, { dateRange: currentMonth }),
         expenseService.getAll(familyId, { dateRange: currentMonth }),
         expenseService.getByUser(familyId, currentMonth.from, currentMonth.to),
