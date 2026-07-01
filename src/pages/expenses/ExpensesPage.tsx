@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input, Select } from '@/components/ui/Input';
 import { ExpenseForm } from '@/components/forms/ExpenseForm';
 import { TableSkeleton } from '@/components/ui/Skeleton';
-import { formatCurrency, formatDate, getCurrentMonth, exportToCSV } from '@/utils';
+import { formatCurrency, formatDate, getCurrentMonth, exportToCSV, getDateRangeForPeriod } from '@/utils';
 import { EXPENSE_CATEGORIES, CATEGORY_ICONS, CATEGORY_COLORS, PAYMENT_METHOD_LABELS } from '@/types';
 import type { Expense, ExpenseFormData } from '@/types';
 

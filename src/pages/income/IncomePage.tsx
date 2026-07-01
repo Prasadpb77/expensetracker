@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input, Select } from '@/components/ui/Input';
 import { IncomeForm } from '@/components/forms/IncomeForm';
 import { TableSkeleton } from '@/components/ui/Skeleton';
-import { formatCurrency, formatDate, getCurrentMonth } from '@/utils';
+import { formatCurrency, formatDate, getCurrentMonth, getDateRangeForPeriod } from '@/utils';
 import { INCOME_SOURCES } from '@/types';
 import type { Income, IncomeFormData } from '@/types';
 
